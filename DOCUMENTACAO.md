@@ -1,52 +1,49 @@
-# EJC Aparecida
+# EJC Aparecida - Documentacao Operacional
 
-Projeto EJC Aparecida consolidando site principal, modulo de aluguel e sincronizacao.
+## Papel do projeto
 
-## Origem
+EJC Aparecida faz parte da VPS PDM. Este repositorio guarda codigo fonte e documentacao, mas nao guarda dados sensiveis nem dados de cliente.
 
-Este repositorio foi criado a partir de export filtrado da VPS.
+## Dominio
 
-## Nao versionado
+`ejcaparecida.pdm1.com.br`
 
-- `.env` e segredos
-- bancos, dumps e backups
+## Caminho na VPS
+
+`/var/www/ejcaparecida + /opt/ejc-aluguel + /opt/ejc-activity-sync`
+
+## Stack
+
+Node.js/Next restaurado do host antigo, PM2, Nginx, MariaDB/Prisma conforme modulo
+
+## Processo de execucao
+
+PM2: ejcaparecida, ejc-aluguel e ejc-activity-sync. Site principal na porta 3210.
+
+## Dados que nao estao no GitHub
+
+Banco MariaDB do EJC, uploads publicos do site e dados JSON quando usados.
+
+Esses dados ficam no Google Drive criptografado, via projeto `pdm-backup`.
+
+## O que nao deve ser versionado
+
+- `.env` e variaveis sensiveis
+- dumps de banco
+- backups `.tar.gz` / `.enc`
 - `node_modules`, builds e caches
-- logs, temporarios e certificados
-- anexos privados de atendimento quando existirem
+- logs e temporarios
+- certificados/chaves
+- uploads privados de clientes, quando existirem
 
-## Backup de dados
+## Observacoes
 
-Dados persistentes ficam no Google Drive criptografado pelo projeto `pdm-backup`.
+Repositorio publico, mas sem .env, banco e segredos.
 
-## Arquivos versionados
+## Checklist de manutencao
 
-- `opt/ejc-activity-sync/server.js`
-- `opt/ejc-aluguel/server.js`
-- `opt/ejc-aluguel/server.js.bak-ui-20260512002628`
-- `var/www/ejcaparecida/data/site-data.json`
-- `var/www/ejcaparecida/DEPLOY.md`
-- `var/www/ejcaparecida/package-lock.json`
-- `var/www/ejcaparecida/package.json`
-- `var/www/ejcaparecida/prisma/schema.prisma`
-- `var/www/ejcaparecida/prisma/seed-content.ts`
-- `var/www/ejcaparecida/prisma/seed.ts`
-- `var/www/ejcaparecida/public/ejc-admin-tools.js`
-- `var/www/ejcaparecida/public/uploads/camisa-azul.pdf`
-- `var/www/ejcaparecida/public/uploads/camisa-off-white.pdf`
-- `var/www/ejcaparecida/public/uploads/camisaejc.jpg`
-- `var/www/ejcaparecida/public/uploads/gincana-anime-oficial.jpg`
-- `var/www/ejcaparecida/public/uploads/gincana-anime-post-v3.png`
-- `var/www/ejcaparecida/public/uploads/gincana-anime.png`
-- `var/www/ejcaparecida/public/uploads/logo-ejc-white.png`
-- `var/www/ejcaparecida/public/uploads/logo-ejc.png`
-- `var/www/ejcaparecida/public/uploads/team/byanca.jpeg`
-- `var/www/ejcaparecida/public/uploads/team/cadu.jpeg`
-- `var/www/ejcaparecida/public/uploads/team/eduarda.jpeg`
-- `var/www/ejcaparecida/public/uploads/team/flaviano.jpeg`
-- `var/www/ejcaparecida/public/uploads/team/jose-marcos.jpeg`
-- `var/www/ejcaparecida/public/uploads/team/leo-e-aline.jpeg`
-- `var/www/ejcaparecida/public/uploads/team/monteiro.jpeg`
-- `var/www/ejcaparecida/public/uploads/team/pe-luiz.jpeg`
-- `var/www/ejcaparecida/public/uploads/team/victor.jpeg`
-- `var/www/ejcaparecida/server.js`
-- `var/www/ejcaparecida/web.config`
+- Conferir processo PM2/Docker depois de deploy.
+- Conferir Nginx e SSL.
+- Conferir se o backup diario rodou.
+- Nunca commitar segredos.
+- Antes de restaurar em outra VPS, restaurar primeiro banco/.env/uploads pelo backup criptografado.
