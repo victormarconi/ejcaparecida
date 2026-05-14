@@ -1,0 +1,200 @@
+const http = require("http");
+const fs = require("fs");
+const crypto = require("crypto");
+const { PrismaClient } = require("/var/www/ejcaparecida/node_modules/@prisma/client");
+const { google } = require("/var/www/ejcaparecida/node_modules/googleapis");
+
+function loadEnv(file) {
+  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
+    if (!line || line.trim().startsWith("#") || !line.includes("=")) continue;
+    const idx = line.indexOf("=");
+    const key = line.slice(0, idx).trim();
+    let value = line.slice(idx + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+  }
+}
+
+loadEnv("/var/www/ejcaparecida/.env");
+const prisma = new PrismaClient();
+const PORT = Number(process.env.PORT || 3213);
+
+function parseCookies(req) {
+  return Object.fromEntries(
+    (req.headers.cookie || "")
+      .split(";")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((value) => {
+        const idx = value.indexOf("=");
+        return [value.slice(0, idx), decodeURIComponent(value.slice(idx + 1))];
+      }),
+  );
+}
+
+function base64url(buffer) {
+  return Buffer.from(buffer).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+function verifySession(req) {
+  const token = parseCookies(req).ejc_session;
+  if (!token || !process.env.SESSION_SECRET) return null;
+  const idx = token.lastIndexOf(".");
+  if (idx < 0) return null;
+  const payload = token.slice(0, idx);
+  const signature = token.slice(idx + 1);
+  const expected = base64url(crypto.createHmac("sha256", process.env.SESSION_SECRET).update(payload).digest());
+  if (signature.length !== expected.length) return null;
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
+  const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+  if (data.exp && Date.now() > data.exp) return null;
+  return data.user && data.user.role === "ADMIN" ? data.user : null;
+}
+
+function redirect(res, to) {
+  res.writeHead(303, { location: to });
+  res.end();
+}
+
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>'"]/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;",
+  })[char]);
+}
+
+function dateValue(value) {
+  return value ? new Date(value).toISOString().slice(0, 10) : "";
+}
+
+async function listRentals() {
+  return prisma.$queryRawUnsafe(
+    "SELECT id,lenderName,rentedAt,dueAt,takenBy,description FROM Rental ORDER BY rentedAt DESC, createdAt DESC",
+  );
+}
+
+async function syncSheet() {
+  try {
+    const key = JSON.parse(
+      fs.readFileSync(process.env.GOOGLE_SERVICE_ACCOUNT_FILE || "/root/ejc-google-service-account.json", "utf8"),
+    );
+    const auth = new google.auth.JWT({
+      email: key.client_email,
+      key: key.private_key,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheets = google.sheets({ version: "v4", auth });
+    const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    if (!meta.data.sheets.some((sheet) => sheet.properties.title === "Aluguel")) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests: [{ addSheet: { properties: { title: "Aluguel" } } }] },
+      });
+    }
+
+    const values = [["Nome da pessoa que emprestou", "Data", "Prazo", "Quem pegou", "Descricao"]];
+    for (const rental of await listRentals()) {
+      values.push([
+        rental.lenderName || "",
+        dateValue(rental.rentedAt),
+        dateValue(rental.dueAt),
+        rental.takenBy || "",
+        rental.description || "",
+      ]);
+    }
+
+    await sheets.spreadsheets.values.clear({ spreadsheetId, range: "Aluguel!A:Z" });
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: "Aluguel!A1",
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values },
+    });
+  } catch (error) {
+    console.error("Aluguel Sheets sync failed", error.message || error);
+  }
+}
+
+async function body(req) {
+  let raw = "";
+  for await (const chunk of req) raw += chunk;
+  return new URLSearchParams(raw);
+}
+
+function renderPage(items) {
+  const rows = items.length
+    ? items.map((item) => [
+      '<article class="rent-row">',
+      `<strong>${escapeHtml(item.lenderName)}</strong>`,
+      `<span>${dateValue(item.rentedAt)}</span>`,
+      `<span>${dateValue(item.dueAt)}</span>`,
+      `<span>${escapeHtml(item.takenBy)}</span>`,
+      `<span class="muted">${escapeHtml(item.description)}</span>`,
+      '<form method="post" action="/admin/aluguel">',
+      '<input type="hidden" name="intent" value="delete">',
+      `<input type="hidden" name="id" value="${escapeHtml(item.id)}">`,
+      '<button class="danger-button" type="submit">Excluir</button>',
+      "</form>",
+      "</article>",
+    ].join("")).join("")
+    : '<div class="rent-row"><span class="muted">Nenhum aluguel cadastrado.</span></div>';
+
+  return [
+    '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    "<title>Aluguel - EJC</title>",
+    '<link rel="stylesheet" href="/_next/static/chunks/0x.28uegb0b4w.css">',
+    "<style>",
+    "body{background:#062034;color:#f4fbff;font-family:Inter,Segoe UI,Arial,sans-serif;margin:0}.wrap{max-width:1180px;margin:0 auto;padding:28px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:20px}.top h1{margin:0;font-size:2rem}.top p{margin:6px 0 0;color:#b8d2e1}.actions{display:flex;gap:10px;align-items:center}.clean-list{display:grid;gap:8px}.rent-row{display:grid;grid-template-columns:1.2fr .7fr .7fr 1fr minmax(220px,1.4fr) auto;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(117,177,211,.22);border-radius:8px;background:rgba(11,43,64,.74)}.rent-row.header{background:transparent;color:#9ec7dd;text-transform:uppercase;font-size:.78rem;font-weight:800;letter-spacing:.03em}.rent-row form{margin:0}.muted{color:#b8d2e1}.modal details{display:inline-block}.modal summary{display:inline-flex;align-items:center;min-height:38px;border:1px solid rgba(117,177,211,.35);border-radius:8px;background:#5fbde4;color:#062238;padding:9px 14px;font-weight:800;cursor:pointer;list-style:none}.modal summary::-webkit-details-marker{display:none}.modal details[open]::before{content:\"\";position:fixed;inset:0;background:rgba(4,16,28,.68);backdrop-filter:blur(8px);z-index:20}.modal form{position:fixed;z-index:21;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,calc(100vw - 28px));display:grid;grid-template-columns:1fr 1fr;gap:12px;border:1px solid rgba(117,177,211,.35);border-radius:8px;background:#09283d;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.42)}label{display:grid;gap:6px;color:#b8d2e1;font-weight:700}input,textarea{width:100%;box-sizing:border-box;border:1px solid rgba(117,177,211,.3);border-radius:8px;background:#0b2b40;color:#fff;padding:10px;font:inherit}textarea{min-height:90px}.wide{grid-column:1/-1}.button,.danger-button{border:1px solid rgba(117,177,211,.35);border-radius:8px;min-height:34px;padding:7px 11px;font-weight:800;cursor:pointer}.button{background:#5fbde4;color:#062238}.secondary{background:#123a55;color:#e4f7ff;text-decoration:none}.danger-button{background:#382b45;color:#ffd6de}@media(max-width:850px){.top{align-items:flex-start;flex-direction:column}.rent-row{grid-template-columns:1fr}.rent-row.header{display:none}.modal form{grid-template-columns:1fr}}",
+    "</style></head><body><div class=\"wrap\">",
+    '<div class="top"><div><h1>Aluguel</h1><p>Controle de itens emprestados e prazos.</p></div>',
+    '<div class="actions"><div class="modal"><details><summary>Novo aluguel</summary>',
+    '<form method="post" action="/admin/aluguel">',
+    '<label>Nome da pessoa que emprestou<input name="lenderName" required></label>',
+    '<label>Data<input type="date" name="rentedAt" required></label>',
+    '<label>Prazo<input type="date" name="dueAt" required></label>',
+    '<label>Quem pegou<input name="takenBy" required></label>',
+    '<label class="wide">Descricao<textarea name="description" required></textarea></label>',
+    '<div class="wide"><button class="button" type="submit">Salvar aluguel</button></div>',
+    '</form></details></div><a class="button secondary" href="/admin">Voltar</a></div></div>',
+    '<section class="clean-list"><div class="rent-row header"><span>Emprestou</span><span>Data</span><span>Prazo</span><span>Quem pegou</span><span>Descricao</span><span></span></div>',
+    rows,
+    "</section></div></body></html>",
+  ].join("");
+}
+
+http.createServer(async (req, res) => {
+  try {
+    if (!verifySession(req)) return redirect(res, "/login?callbackUrl=/admin/aluguel");
+    if (req.method === "POST") {
+      const form = await body(req);
+      if (form.get("intent") === "delete") {
+        await prisma.$executeRawUnsafe("DELETE FROM Rental WHERE id=?", form.get("id"));
+      } else {
+        await prisma.$executeRawUnsafe(
+          "INSERT INTO Rental (id,lenderName,rentedAt,dueAt,takenBy,description,createdAt,updatedAt) VALUES (?,?,?,?,?,?,NOW(),NOW())",
+          "aluguel-" + Date.now().toString(36),
+          form.get("lenderName"),
+          new Date(form.get("rentedAt")),
+          new Date(form.get("dueAt")),
+          form.get("takenBy"),
+          form.get("description"),
+        );
+      }
+      await syncSheet();
+      return redirect(res, "/admin/aluguel");
+    }
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+    res.end(renderPage(await listRentals()));
+  } catch (error) {
+    console.error(error);
+    res.writeHead(500);
+    res.end("Erro no aluguel");
+  }
+}).listen(PORT, "127.0.0.1", () => console.log("EJC aluguel on " + PORT));

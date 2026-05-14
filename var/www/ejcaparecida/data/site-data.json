@@ -1,0 +1,211 @@
+{
+  "notices": [
+    {
+      "id": "camisa-ejc-2026",
+      "type": "AVISO",
+      "title": "Camisa oficial do EJC",
+      "summary": "Pedidos abertos para a camisa oficial do EJC Nossa Senhora Aparecida.",
+      "content": "Edição de colecionador dos 10 anos. Faça seu pedido pelo formulário: https://forms.gle/SvV54TNFKPALvAmt7",
+      "assetUrl": "/uploads/camisaejc.jpg",
+      "secondaryAssetUrl": "",
+      "published": true,
+      "highlight": false,
+      "createdAt": "2026-04-29T16:30:00.000Z"
+    },
+    {
+      "id": "gincana-animes",
+      "type": "AVISO",
+      "title": "Gincana tema animes",
+      "summary": "A gincana está chegando com provas surpresa e desafios inspirados em animes.",
+      "content": "Fiquem atentos aos próximos avisos da equipe dirigente.",
+      "assetUrl": "/uploads/gincana-anime.png",
+      "secondaryAssetUrl": "",
+      "published": true,
+      "highlight": false,
+      "createdAt": "2026-04-29T16:32:00.000Z"
+    }
+  ],
+  "events": [
+    {
+      "id": "prova-surpresa",
+      "title": "Prova surpresa da gincana",
+      "description": "Detalhes internos para a equipe dirigente. Não aparece no site público.",
+      "location": "A definir",
+      "startsAt": "2026-05-24T18:00:00.000Z",
+      "visibility": "MEMBERS"
+    },
+    {
+      "id": "prep-maio",
+      "title": "Encontro de preparação",
+      "description": "Momento de organização e alinhamento da equipe.",
+      "location": "Sala paroquial",
+      "startsAt": "2026-05-09T19:30:00.000Z",
+      "visibility": "PUBLIC"
+    },
+    {
+      "id": "missa-jovens",
+      "title": "Missa com os jovens",
+      "description": "Celebração aberta para toda a juventude.",
+      "location": "Igreja Matriz",
+      "startsAt": "2026-05-17T21:00:00.000Z",
+      "visibility": "PUBLIC"
+    }
+  ],
+  "team": [
+    {
+      "id": "padre-luiz-carlos",
+      "name": "Pe. Luiz",
+      "role": "Diretor espiritual",
+      "bio": "Diretor espiritual do EJC.",
+      "photoUrl": "/uploads/team/pe-luiz.jpeg",
+      "sortOrder": 1,
+      "active": true
+    },
+    {
+      "id": "leo-aline-casal-apoio",
+      "name": "Aline e Léo",
+      "role": "Casal apoio",
+      "bio": "Casal de apoio da equipe dirigente.",
+      "photoUrl": "/uploads/team/leo-e-aline.jpeg",
+      "sortOrder": 2,
+      "active": true
+    },
+    {
+      "id": "byanca-pastoral",
+      "name": "Byanca",
+      "role": "Pastoral",
+      "bio": "Acompanha a caminhada pastoral do EJC.",
+      "photoUrl": "/uploads/team/byanca.jpeg",
+      "sortOrder": 3,
+      "active": true
+    },
+    {
+      "id": "cadu-comunicacao",
+      "name": "Cadu",
+      "role": "Comunicação",
+      "bio": "Responsável pelos avisos, comunicados e mídias.",
+      "photoUrl": "/uploads/team/cadu.jpeg",
+      "sortOrder": 4,
+      "active": true
+    },
+    {
+      "id": "eduarda-fichas",
+      "name": "Eduarda",
+      "role": "Fichas",
+      "bio": "Organiza inscrições, fichas e informações dos jovens.",
+      "photoUrl": "/uploads/team/eduarda.jpeg",
+      "sortOrder": 5,
+      "active": true
+    },
+    {
+      "id": "flaviano-montagem",
+      "name": "Flaviano",
+      "role": "Montagem",
+      "bio": "Responsável pela estrutura e montagem das atividades.",
+      "photoUrl": "/uploads/team/flaviano.jpeg",
+      "sortOrder": 6,
+      "active": true
+    },
+    {
+      "id": "jose-marcos-palestra",
+      "name": "José Marcos",
+      "role": "Palestra",
+      "bio": "Cuida da organização das palestras e conteúdos formativos.",
+      "photoUrl": "/uploads/team/jose-marcos.jpeg",
+      "sortOrder": 7,
+      "active": true
+    },
+    {
+      "id": "monteiro-pos-encontro",
+      "name": "Monteiro",
+      "role": "Pós-encontro",
+      "bio": "Ajuda a cuidar da continuidade após os encontros.",
+      "photoUrl": "/uploads/team/monteiro.jpeg",
+      "sortOrder": 8,
+      "active": true
+    },
+    {
+      "id": "victor-financas",
+      "name": "Victor",
+      "role": "Finanças",
+      "bio": "Responsável pelo controle financeiro e campanhas.",
+      "photoUrl": "/uploads/team/victor.jpeg",
+      "sortOrder": 9,
+      "active": true
+    }
+  ],
+  "locations": [
+    {
+      "id": "nossa-senhora-aparecida",
+      "type": "Paróquia",
+      "title": "Nossa Senhora Aparecida",
+      "address": "Valentina",
+      "query": "Nossa Senhora Aparecida Valentina",
+      "mapUrl": "https://maps.app.goo.gl/hzmEnLKDLnrJPhDE6",
+      "sortOrder": 1
+    },
+    {
+      "id": "sao-sebastiao",
+      "type": "Comunidade",
+      "title": "Comunidade São Sebastião",
+      "address": "Valentina",
+      "query": "Comunidade São Sebastião Valentina",
+      "mapUrl": "https://maps.app.goo.gl/UnrRe8NuRJX2npS79",
+      "sortOrder": 2
+    },
+    {
+      "id": "sao-pedro-sao-paulo",
+      "type": "Comunidade",
+      "title": "Comunidade São Pedro e São Paulo",
+      "address": "Valentina",
+      "query": "Comunidade São Pedro e São Paulo Valentina",
+      "mapUrl": "https://maps.app.goo.gl/2WoRfpDrzufyccev7",
+      "sortOrder": 3
+    },
+    {
+      "id": "santa-maria-mae-de-deus",
+      "type": "Comunidade",
+      "title": "Comunidade Santa Maria Mãe de Deus",
+      "address": "Valentina",
+      "query": "Comunidade Santa Maria Mãe de Deus Valentina",
+      "mapUrl": "https://maps.app.goo.gl/EgxU2bLmFgQzojKb6",
+      "sortOrder": 4
+    }
+  ],
+  "instagram": {
+    "profileUrl": "https://www.instagram.com/ejc.aparecida/",
+    "parishProfileUrl": "https://www.instagram.com/paroquiadeaparecida/",
+    "handle": "@ejc.aparecida",
+    "posts": []
+  },
+  "eventLogs": [],
+  "finances": [
+    {
+      "id": "financeiro-mokh89jf-t8cihg",
+      "type": "INCOME",
+      "title": "teste",
+      "description": "",
+      "amountCents": 10000,
+      "occurredAt": "2026-04-29T00:00:00.000Z",
+      "category": "Camisas"
+    },
+    {
+      "id": "camisas-receita",
+      "type": "INCOME",
+      "title": "Venda de camisas",
+      "description": "Recebimentos confirmados",
+      "amountCents": 125000,
+      "occurredAt": "2026-04-29T12:00:00.000Z",
+      "category": "Camisas"
+    },
+    {
+      "id": "gincana-material",
+      "type": "EXPENSE",
+      "title": "Material da gincana",
+      "description": "Compra de itens para provas",
+      "amountCents": 34000,
+      "occurredAt": "2026-04-29T12:00:00.000Z",
+      "category": "Gincana"
+    }
+  ]
+}

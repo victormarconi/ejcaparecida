@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  MEMBER
+}
+
+enum NoticeType {
+  AVISO
+  VENDA
+  GINCANA
+  EVENTO
+}
+
+enum EventVisibility {
+  PUBLIC
+  MEMBERS
+}
+
+enum FinanceType {
+  INCOME
+  EXPENSE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  username     String?  @unique
+  passwordHash String
+  role         Role     @default(MEMBER)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Notice {
+  id                String     @id @default(cuid())
+  title             String
+  summary           String     @db.Text
+  content           String?    @db.Text
+  assetUrl          String?    @db.Text
+  secondaryAssetUrl String?    @db.Text
+  type              NoticeType @default(AVISO)
+  highlight         Boolean    @default(false)
+  published         Boolean    @default(true)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+model Event {
+  id          String          @id @default(cuid())
+  title       String
+  description String?         @db.Text
+  location    String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  visibility  EventVisibility @default(PUBLIC)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  name      String
+  role      String
+  bio       String?  @db.Text
+  photoUrl  String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  type      String
+  title     String
+  address   String
+  query     String
+  mapUrl    String?  @db.Text
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FinanceEntry {
+  id          String      @id @default(cuid())
+  type        FinanceType
+  title       String
+  description String?     @db.Text
+  amountCents Int
+  occurredAt  DateTime
+  category    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model DriveCache {
+  id         String   @id
+  name       String
+  mimeType   String
+  webViewUrl String?
+  modifiedAt DateTime?
+  cachedAt   DateTime @default(now())
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  points      Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SaleCampaign {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  priceCents  Int
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
