@@ -47,7 +47,7 @@ async function syncLogs() {
   running = true;
   try {
     const rows = await prisma.$queryRawUnsafe(
-      "SELECT id,entity,entityId,action,actor,payload,createdAt FROM ActivityLog ORDER BY createdAt DESC, id DESC LIMIT 1000",
+      `SELECT id,entidade AS entity,entidade_id AS "entityId",acao AS action,ator AS actor,dados AS payload,criado_em AS "createdAt" FROM logs_atividade ORDER BY criado_em DESC, id DESC LIMIT 1000`,
     );
     const values = [["Data/Hora", "Area", "Acao", "Registro", "Usuario", "Dados completos"]];
     for (const row of rows) {

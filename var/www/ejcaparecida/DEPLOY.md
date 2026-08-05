@@ -1,62 +1,57 @@
-# Deploy no SmarterASP.NET
+# Deploy - EJC Aparecida
 
-## 1. Criar o banco MySQL
+## Producao
 
-No painel do SmarterASP.NET, crie um banco MySQL e anote:
+- URL: https://ejcaparecida.pdm1.com.br
+- Codigo principal: /var/www/ejcaparecida
+- Runtime principal: Docker Compose gerenciado pelo iContainer/ICP
+- Compose principal: /opt/icp-apps/ejcaparecida/docker-compose.yml
+- Porta local principal: 3210 via network_mode host
+- Proxy atual: Nginx da VPS apontando para 127.0.0.1:3210
 
-- Host
-- Nome do banco
-- Usuário
-- Senha
+## Auxiliares
 
-Com isso, monte a `DATABASE_URL`:
+Ainda ficaram em PM2 por seguranca:
 
-```env
-DATABASE_URL="mysql://USUARIO:SENHA@HOST:3306/NOME_DO_BANCO"
-```
+- ejc-aluguel: /opt/ejc-aluguel, porta 3213, usado em /admin/aluguel
+- ejc-activity-sync: /opt/ejc-activity-sync, porta 4051
 
-## 2. Variáveis de produção
+Motivo: o teste de container do ejc-aluguel nao abriu a porta 3213; rollback automatico manteve PM2 funcionando.
 
-Configure no painel da hospedagem:
+## Variaveis do app principal
 
-```env
-DATA_SOURCE="database"
-AUTH_DATABASE="true"
-SESSION_SECRET="uma-chave-grande"
-ADMIN_EMAIL="admin@ejc.local"
-ADMIN_USERNAME="ejcaparecida"
-ADMIN_PASSWORD="sua-senha-de-producao"
-```
+O app usa /var/www/ejcaparecida/.env. Nao versionar este arquivo.
 
-## 3. Preparar o banco
+Nomes esperados:
 
-Com a `DATABASE_URL` configurada:
+- ADMIN_EMAIL
+- ADMIN_PASSWORD
+- ADMIN_USERNAME
+- AUTH_DATABASE
+- DATABASE_URL
+- DATA_SOURCE
+- GOOGLE_DRIVE_FOLDER_ID
+- GOOGLE_PRIVATE_KEY
+- GOOGLE_SERVICE_ACCOUNT_EMAIL
+- GOOGLE_SERVICE_ACCOUNT_FILE
+- GOOGLE_SHEETS_ID
+- SESSION_SECRET
 
-```bash
-npm run db:push
-npm run db:seed
-npm run db:seed-content
-```
+## Comandos uteis
 
-## 4. Build e start
+cd /opt/icp-apps/ejcaparecida
+docker compose ps
+docker compose logs --tail=100 ejcaparecida
+docker compose restart ejcaparecida
 
-```bash
+## Atualizacao
+
+cd /var/www/ejcaparecida
 npm install
 npm run build
-npm run start
-```
+cd /opt/icp-apps/ejcaparecida
+docker compose restart ejcaparecida
 
-Se a hospedagem pedir o arquivo de inicialização do standalone:
+## Observacao
 
-```bash
-npm run start:standalone
-```
-
-## 5. Conferir depois do upload
-
-- Home pública abre.
-- Login entra com o usuário admin.
-- Avisos salvam.
-- Calendário salva.
-- Finanças salva.
-- Área interna de documentos abre.
+O processo antigo PM2 ejcaparecida foi removido apos validacao do container em producao. Os auxiliares continuam em PM2 ate uma etapa propria de ajuste.

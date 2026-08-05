@@ -1,0 +1,23 @@
+.admin-event-summary * {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: var(--ink, #000) !important;
+  font-size: 14px !important;
+}
+.event-item .button.secondary, .finance-item .button.secondary, .inline-editor>summary {
+  background: #fffaf1 !important;
+  color: #062b49 !important;
+  border-color: #ded4c5 !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+.event-item .danger-button, .finance-item .danger-button {
+  background: #fff7f8 !important;
+  color: #a64658 !important;
+  border-color: #eed1d7 !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
