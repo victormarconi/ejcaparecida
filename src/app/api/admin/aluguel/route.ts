@@ -1,0 +1,13 @@
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { recordActivity, requestData, requireAdminApi, routeResponse } from "@/lib/http";
+
+const schema = z.object({ itemName: z.string().min(1), lenderName: z.string().min(1), takenBy: z.string().min(1), rentedAt: z.string().datetime(), dueAt: z.string().datetime(), returnedAt: z.string().datetime().nullable().optional(), status: z.enum(["BORROWED", "RETURNED"]), description: z.string().nullable().optional(), conditionNote: z.string().nullable().optional() });
+const clean = (value?: string | null) => value?.trim() || null;
+function data(value: z.infer<typeof schema>, actor: string) { return { ...value, description: clean(value.description), conditionNote: clean(value.conditionNote), rentedAt: new Date(value.rentedAt), dueAt: new Date(value.dueAt), returnedAt: value.returnedAt ? new Date(value.returnedAt) : null, updatedBy: actor, returnedBy: value.status === "RETURNED" ? actor : null }; }
+
+export async function GET(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error) return auth.error; return routeResponse(request, { items: await prisma.rental.findMany({ orderBy: { dueAt: "desc" } }) }); }
+export async function POST(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error || !auth.user) return auth.error!; const value = schema.parse(await requestData(request)); const item = await prisma.rental.create({ data: { ...data(value, auth.user.name), createdBy: auth.user.name } }); await recordActivity(auth.user, "rental", item.id, "CREATED", { item: item.itemName }); return routeResponse(request, { item }, 201, "/admin/aluguel"); }
+export async function PUT(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error || !auth.user) return auth.error!; const raw = await requestData(request); const id = z.string().min(1).parse(raw.id); const item = await prisma.rental.update({ where: { id }, data: data(schema.parse(raw), auth.user.name) }); await recordActivity(auth.user, "rental", id, item.status === "RETURNED" ? "RETURNED" : "UPDATED", { item: item.itemName }); return routeResponse(request, { item }, 200, "/admin/aluguel"); }
+export async function DELETE(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error || !auth.user) return auth.error!; const id = z.string().min(1).parse((await requestData(request)).id); await prisma.rental.delete({ where: { id } }); await recordActivity(auth.user, "rental", id, "DELETED", {}); return routeResponse(request, { ok: true }, 200, "/admin/aluguel"); }

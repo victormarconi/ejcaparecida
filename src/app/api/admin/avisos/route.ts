@@ -1,0 +1,13 @@
+import { NoticeType } from "@prisma/client";
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { recordActivity, requestData, requireAdminApi, routeResponse } from "@/lib/http";
+
+const schema = z.object({ title: z.string().min(1), summary: z.string().min(1), content: z.string().nullable().optional(), assetUrl: z.string().nullable().optional(), secondaryAssetUrl: z.string().nullable().optional(), type: z.nativeEnum(NoticeType), highlight: z.boolean().default(false), published: z.boolean().default(false), startsAt: z.string().datetime().nullable().optional(), endsAt: z.string().datetime().nullable().optional() });
+const clean = (value?: string | null) => value?.trim() || null;
+
+export async function GET(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error) return auth.error; return routeResponse(request, { items: await prisma.notice.findMany({ orderBy: { createdAt: "desc" } }) }); }
+export async function POST(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error || !auth.user) return auth.error!; const value = schema.parse(await requestData(request)); const item = await prisma.notice.create({ data: { ...value, content: clean(value.content), assetUrl: clean(value.assetUrl), secondaryAssetUrl: clean(value.secondaryAssetUrl), startsAt: value.startsAt ? new Date(value.startsAt) : null, endsAt: value.endsAt ? new Date(value.endsAt) : null } }); await recordActivity(auth.user, "notice", item.id, "CREATED", { title: item.title }); return routeResponse(request, { item }, 201, "/admin/avisos"); }
+export async function PUT(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error || !auth.user) return auth.error!; const raw = await requestData(request); const id = z.string().min(1).parse(raw.id); const value = schema.parse(raw); const item = await prisma.notice.update({ where: { id }, data: { ...value, content: clean(value.content), assetUrl: clean(value.assetUrl), secondaryAssetUrl: clean(value.secondaryAssetUrl), startsAt: value.startsAt ? new Date(value.startsAt) : null, endsAt: value.endsAt ? new Date(value.endsAt) : null } }); await recordActivity(auth.user, "notice", id, "UPDATED", { title: item.title }); return routeResponse(request, { item }, 200, "/admin/avisos"); }
+export async function DELETE(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error || !auth.user) return auth.error!; const id = z.string().min(1).parse((await requestData(request)).id); await prisma.notice.delete({ where: { id } }); await recordActivity(auth.user, "notice", id, "DELETED", {}); return routeResponse(request, { ok: true }, 200, "/admin/avisos"); }

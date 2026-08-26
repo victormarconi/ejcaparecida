@@ -6,11 +6,12 @@ const prisma = new PrismaClient();
 async function main() {
   const email = process.env.ADMIN_EMAIL || "admin@ejc.local";
   const username = process.env.ADMIN_USERNAME || "ejcaparecida";
-  const password = process.env.ADMIN_PASSWORD || "admin123";
+  const password = process.env.ADMIN_PASSWORD || "";
+  if (password.length < 12) throw new Error("ADMIN_PASSWORD precisa ter ao menos 12 caracteres");
 
   await prisma.user.upsert({
     where: { email },
-    update: {},
+    update: { username, active: true },
     create: {
       name: "Administrador EJC",
       email,

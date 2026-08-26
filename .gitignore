@@ -1,8 +1,12 @@
 .opencode/
-node_modules/
 .next/
+node_modules/
 .env
 .env.*
 !.env.example
+coverage/
+*.log
+*.tsbuildinfo
+.recovery-runtime/
 BUILD_SHA
 .release-commit

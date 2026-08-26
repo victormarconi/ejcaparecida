@@ -1,10 +1,25 @@
 # EJC Aparecida
 
-Repositorio publico, mas sem .env, banco e segredos.
+Fonte versionado da aplicação EJC Aparecida, reconstruído em Next.js, React,
+Prisma e PostgreSQL a partir do comportamento funcional, do schema e dos dados
+institucionais validados. O runtime compilado anterior foi preservado somente em
+`runtime-baseline/` para rastreabilidade; ele não é a fonte da aplicação.
 
-- Documentacao: [DOCUMENTACAO.md](DOCUMENTACAO.md)
-- Restauracao: [RESTAURACAO.md](RESTAURACAO.md)
-- Fluxograma: [FLUXO.md](FLUXO.md)
-- Sync VPS 2026-05-26: [docs/VPS_SYNC_2026-05-26.md](docs/VPS_SYNC_2026-05-26.md)
+## Desenvolvimento
 
-Este repositorio nao deve receber segredos, bancos, dumps, backups ou dependencias instaladas.
+1. Copie `.env.example` para `.env` e preencha somente valores locais.
+2. Execute `npm ci` e `npm run db:generate`.
+3. Prepare um PostgreSQL isolado com `npm run db:push`.
+4. Crie o administrador com `npm run db:seed`.
+5. Valide com `npm run typecheck`, `npm run lint` e `npm run build`.
+
+O projeto expõe `/api/health` para identificação da versão e `/api/ready` para
+comprovar acesso ao banco.
+
+- Documentação histórica: [DOCUMENTACAO.md](DOCUMENTACAO.md)
+- Restauração histórica: [RESTAURACAO.md](RESTAURACAO.md)
+- Fluxograma histórico: [FLUXO.md](FLUXO.md)
+- Estado atual: [PROJECT_STATE.md](PROJECT_STATE.md)
+
+Este repositório não deve receber `.env`, credenciais, bancos, dumps, backups ou
+dependências instaladas.
