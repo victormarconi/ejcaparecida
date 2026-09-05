@@ -10,7 +10,7 @@ export function AppShell({ user, children }: { user: { name: string; role: strin
         <Link href="/membros/calendario">Calendário</Link>
         <Link href="/membros/documentos">Documentos</Link>
         <Link href="/membros/financas">Finanças</Link>
-        {user.role === "ADMIN" && <><Link href="/admin">Administração</Link><Link href="/admin/avisos">Avisos</Link><Link href="/admin/calendario">Eventos</Link><Link href="/admin/equipe">Equipe</Link><Link href="/admin/financas">Lançamentos</Link><Link href="/admin/localizacoes">Localizações</Link><Link href="/admin/aluguel">Empréstimos</Link></>}
+        {user.role === "ADMIN" && <><Link href="/admin">Administração</Link><Link href="/admin/avisos">Avisos</Link><Link href="/admin/calendario">Eventos</Link><Link href="/admin/equipe">Equipe</Link><Link href="/admin/formularios">Formulários</Link><Link href="/admin/financas">Finanças</Link><Link href="/admin/localizacoes">Localizações</Link><Link href="/admin/aluguel">Patrimônio &amp; Estoque</Link></>}
       </nav>
       <div className="sidebar-footer"><span>{user.name}</span><form action="/api/logout" method="post"><button className="button secondary small" type="submit">Sair</button></form></div>
     </aside>
