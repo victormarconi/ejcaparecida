@@ -69,6 +69,7 @@ async function main() {
           address: location.address,
           query: location.query,
           mapUrl: location.mapUrl,
+          massSchedule: location.massSchedule,
           sortOrder: location.sortOrder,
         })),
       });
@@ -84,6 +85,7 @@ async function main() {
           amountCents: entry.amountCents,
           occurredAt: new Date(entry.occurredAt),
           category: entry.category,
+          receiptUrl: entry.receiptUrl,
         })),
       });
     }

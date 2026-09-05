@@ -35,6 +35,7 @@ export type SiteData = {
     address: string;
     query: string;
     mapUrl?: string | null;
+    massSchedule?: string | null;
     sortOrder: number;
   }>;
   finances: Array<{
@@ -45,5 +46,6 @@ export type SiteData = {
     amountCents: number;
     occurredAt: string;
     category?: string | null;
+    receiptUrl?: string | null;
   }>;
 };

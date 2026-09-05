@@ -1,59 +1,87 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CampaignForm } from "@/components/CampaignForm";
+import { PublicCalendar } from "@/components/PublicCalendar";
+import { CopyPix, ThemeToggle } from "@/components/PublicInteractions";
+import { parseFormFields } from "@/lib/forms";
 import { prisma } from "@/lib/prisma";
-import { shortDate } from "@/lib/format";
-import { CopyPix, LocationTabs, ThemeToggle } from "@/components/PublicInteractions";
 
 export const dynamic = "force-dynamic";
 
+const publicDate = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Fortaleza", year: "numeric", month: "2-digit", day: "2-digit" });
+
+function initials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+}
+
 export default async function HomePage() {
   const now = new Date();
-  const [notices, events, team, locations] = await Promise.all([
-    prisma.notice.findMany({ where: { published: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ highlight: "desc" }, { createdAt: "desc" }], take: 6 }),
-    prisma.event.findMany({ where: { visibility: "PUBLIC", startsAt: { gte: new Date(now.getTime() - 86400000) } }, orderBy: { startsAt: "asc" }, take: 6 }),
+  const [campaign, notices, events, team, locations] = await Promise.all([
+    prisma.formCampaign.findFirst({
+      where: { active: true, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.notice.findMany({
+      where: { published: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
+      orderBy: [{ highlight: "desc" }, { createdAt: "desc" }],
+      take: 6,
+    }),
+    prisma.event.findMany({ where: { visibility: "PUBLIC" }, orderBy: { startsAt: "asc" }, take: 500 }),
     prisma.teamMember.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     prisma.location.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
   ]);
+  const campaignFields = campaign ? parseFormFields(campaign.fieldsJson) : [];
+  const serializedEvents = events.map((event) => ({
+    id: event.id,
+    title: event.title,
+    description: event.description,
+    location: event.location,
+    startsAt: event.startsAt.toISOString(),
+    endsAt: event.endsAt?.toISOString() || null,
+  }));
 
   return <main>
     <header className="topbar"><div className="container topbar-inner">
       <Link className="brand" href="/"><Image src="/uploads/logo-ejc.png" width={34} height={34} alt="" /><span>EJC Nossa Senhora Aparecida</span></Link>
       <nav className="public-nav" aria-label="Navegação pública">
-        <a href="#avisos">Avisos</a><a href="#eventos">Eventos</a><a href="#equipe">Equipe</a><a href="#localizacao">Localização</a>
+        {campaign && <a href="#inscricoes">Inscrições</a>}<a href="#eventos">Calendário</a><a href="#equipe">Equipe</a><a href="#localizacao">Localização</a>
         <ThemeToggle /><Link className="button small" href="/login">Área interna</Link>
       </nav>
     </div></header>
 
-    <section className="hero"><div className="container">
-      <span className="eyebrow">EJC Aparecida</span>
-      <h1>Encontro de Jovens com Cristo</h1>
-      <p>Fé, amizade e serviço na Paróquia Nossa Senhora Aparecida, no Valentina.</p>
-      <div className="hero-actions"><a className="button" href="#eventos">Ver próximos eventos</a><a className="button secondary" href="https://www.instagram.com/ejc.aparecida/" target="_blank" rel="noreferrer">Acompanhar no Instagram</a></div>
+    {campaign && <section className={`campaign-hero${campaign.bannerUrl ? " has-banner" : ""}`} id="inscricoes"><div className="container campaign-layout">
+      {campaign.bannerUrl && <div className="campaign-banner">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={campaign.bannerUrl} alt={`Banner: ${campaign.title}`} />
+      </div>}
+      <div className="campaign-copy"><span className="eyebrow">Inscrições e pedidos</span><h1>{campaign.title}</h1>{campaign.description && <p>{campaign.description}</p>}<CampaignForm campaignId={campaign.id} fields={campaignFields} /></div>
+    </div></section>}
+
+    <section className={`section calendar-section${campaign ? "" : " first-section"}`} id="eventos"><div className="container">
+      <div className="section-heading"><div><span className="eyebrow">Calendário</span>{campaign ? <h2>Calendário público</h2> : <h1>Calendário público</h1>}</div><p>Datas importantes para acompanhar a caminhada do EJC e da comunidade.</p></div>
+      <PublicCalendar events={serializedEvents} initialMonth={publicDate.format(now)} now={now.toISOString()} />
     </div></section>
 
-    <section className="section" id="avisos"><div className="container">
+    {notices.length > 0 && <section className="section alt" id="avisos"><div className="container">
       <div className="section-heading"><div><span className="eyebrow">Avisos</span><h2>O que está acontecendo</h2></div><p>Comunicados, campanhas e informações importantes para a comunidade.</p></div>
       <div className="grid two">{notices.map((notice) => <article className="card notice-card" key={notice.id}>
-        {notice.assetUrl ? <Image src={notice.assetUrl} width={640} height={480} alt={notice.title} /> : <div className="notice-placeholder" />}
+        {notice.assetUrl ? <Image src={notice.assetUrl} width={640} height={480} alt={notice.title} /> : <div className="notice-placeholder" aria-hidden="true" />}
         <div className="notice-content"><span className="eyebrow">{notice.type}</span><h3>{notice.title}</h3><p>{notice.summary}</p>{notice.content && <p>{notice.content}</p>}</div>
       </article>)}</div>
-      {!notices.length && <div className="card empty">Nenhum aviso publicado no momento.</div>}
+    </div></section>}
+
+    <section className="section" id="equipe"><div className="container">
+      <div className="section-heading"><div><span className="eyebrow">Jotado</span><h2>Equipe dirigente</h2></div><p>As pessoas que cuidam da organização, comunicação e caminhada pastoral do EJC.</p></div>
+      <div className="grid team-grid">{team.map((member) => <article className="card team-card" key={member.id}>
+        {member.photoUrl ? <Image src={member.photoUrl} width={520} height={520} alt={`Foto de ${member.name}, ${member.role}`} /> : <div className="team-fallback" aria-hidden="true">{initials(member.name)}</div>}
+        <div className="team-caption"><strong>{member.name}</strong><span>{member.role}</span></div>
+      </article>)}</div>
+      {!team.length && <div className="card empty">A equipe dirigente será apresentada em breve.</div>}
     </div></section>
 
     <section className="section alt"><div className="container donation">
       <div className="card"><span className="eyebrow">Doação</span><h2>Apoie a missão do EJC</h2><p>Quem desejar contribuir com a caminhada do grupo pode fazer uma doação pelo PIX.</p></div>
       <div className="card pix-card"><span>PIX</span><strong>ejcaparecida2000@gmail.com</strong><CopyPix value="ejcaparecida2000@gmail.com" /></div>
-    </div></section>
-
-    <section className="section" id="eventos"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Calendário</span><h2>Eventos futuros</h2></div><p>Datas importantes para os jovens acompanharem sem precisar entrar na área interna.</p></div>
-      <div className="grid three">{events.map((event) => <article className="card event-card" key={event.id}><span className="event-date">{shortDate(event.startsAt)}</span><h3>{event.title}</h3>{event.description && <p>{event.description}</p>}<span className="event-location">📍 {event.location || "A definir"}</span></article>)}</div>
-      {!events.length && <div className="card empty">A agenda pública será atualizada em breve.</div>}
-    </div></section>
-
-    <section className="section alt" id="equipe"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Jotado</span><h2>Equipe dirigente</h2></div><p>As pessoas que ajudam a cuidar da organização, comunicação e caminhada do EJC.</p></div>
-      <div className="grid team-grid">{team.map((member) => <article className="card team-card" key={member.id}>{member.photoUrl ? <Image src={member.photoUrl} width={520} height={520} alt={`Equipe dirigente - ${member.name}`} /> : null}<div className="team-caption"><strong>{member.name}</strong><span>{member.role}</span></div></article>)}</div>
     </div></section>
 
     <section className="section" id="instagram"><div className="container">
@@ -62,8 +90,13 @@ export default async function HomePage() {
     </div></section>
 
     <section className="section alt" id="localizacao"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Localização</span><h2>Paróquia e comunidades</h2></div><p>Onde acontecem os encontros, missas e atividades do EJC.</p></div>
-      <LocationTabs locations={locations} />
+      <div className="section-heading"><div><span className="eyebrow">Localização</span><h2>Paróquia e comunidades</h2></div><p>Endereços estáveis para chegar às celebrações, encontros e atividades.</p></div>
+      <div className="location-grid">{locations.map((location) => <article className="card chapel-card" key={location.id}>
+        <span className="eyebrow">{location.type}</span><h3>{location.title}</h3><p className="chapel-address">📍 {location.address}</p>
+        <div className="mass-schedule"><strong>Horários das missas</strong><p>{location.massSchedule || "Consulte a programação atual da paróquia."}</p></div>
+        <a className="button secondary" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.query)}`} target="_blank" rel="noreferrer">Ver no Google Maps ↗</a>
+      </article>)}</div>
+      {!locations.length && <div className="card empty">As localizações serão atualizadas em breve.</div>}
     </div></section>
 
     <footer className="footer"><div className="container">EJC Nossa Senhora Aparecida · Valentina, João Pessoa/PB</div></footer>

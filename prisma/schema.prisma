@@ -32,145 +32,205 @@ enum FinanceType {
 
 model User {
   id           String   @id @default(cuid())
-  name         String @map("nome")
+  name         String   @map("nome")
   email        String   @unique
   username     String?  @unique @map("usuario")
-  passwordHash String @map("senha_hash")
+  passwordHash String   @map("senha_hash")
   role         Role     @default(MEMBER) @map("papel")
   active       Boolean  @default(true) @map("ativo")
   createdAt    DateTime @default(now()) @map("criado_em")
   updatedAt    DateTime @updatedAt @map("atualizado_em")
+
   @@map("usuarios")
 }
 
 model Notice {
   id                String     @id @default(cuid())
-  title             String @map("titulo")
-  summary           String     @db.Text @map("resumo")
-  content           String?    @db.Text @map("conteudo")
-  assetUrl          String?    @db.Text @map("url_midia")
-  secondaryAssetUrl String?    @db.Text @map("url_midia_secundaria")
+  title             String     @map("titulo")
+  summary           String     @map("resumo") @db.Text
+  content           String?    @map("conteudo") @db.Text
+  assetUrl          String?    @map("url_midia") @db.Text
+  secondaryAssetUrl String?    @map("url_midia_secundaria") @db.Text
   type              NoticeType @default(AVISO) @map("tipo")
   highlight         Boolean    @default(false) @map("destaque")
   published         Boolean    @default(true) @map("publicado")
-  startsAt          DateTime? @map("inicio_em")
-  endsAt            DateTime? @map("fim_em")
+  startsAt          DateTime?  @map("inicio_em")
+  endsAt            DateTime?  @map("fim_em")
   createdAt         DateTime   @default(now()) @map("criado_em")
   updatedAt         DateTime   @updatedAt @map("atualizado_em")
+
   @@map("avisos")
 }
 
 model Event {
   id          String          @id @default(cuid())
-  title       String @map("titulo")
-  description String?         @db.Text @map("descricao")
-  location    String? @map("local")
-  startsAt    DateTime @map("inicio_em")
-  endsAt      DateTime? @map("fim_em")
+  title       String          @map("titulo")
+  description String?         @map("descricao") @db.Text
+  location    String?         @map("local")
+  startsAt    DateTime        @map("inicio_em")
+  endsAt      DateTime?       @map("fim_em")
   visibility  EventVisibility @default(PUBLIC) @map("visibilidade")
   createdAt   DateTime        @default(now()) @map("criado_em")
   updatedAt   DateTime        @updatedAt @map("atualizado_em")
+
   @@map("eventos")
 }
 
 model TeamMember {
   id        String   @id @default(cuid())
-  name      String @map("nome")
-  role      String @map("cargo")
-  bio       String?  @db.Text @map("biografia")
-  photoUrl  String? @map("url_foto")
+  name      String   @map("nome")
+  role      String   @map("cargo")
+  bio       String?  @map("biografia") @db.Text
+  photoUrl  String?  @map("url_foto")
   sortOrder Int      @default(0) @map("ordem")
   active    Boolean  @default(true) @map("ativo")
   createdAt DateTime @default(now()) @map("criado_em")
   updatedAt DateTime @updatedAt @map("atualizado_em")
+
   @@map("membros_equipe")
 }
 
 model Location {
-  id        String   @id @default(cuid())
-  type      String @map("tipo")
-  title     String @map("titulo")
-  address   String @map("endereco")
-  query     String @map("busca")
-  mapUrl    String?  @db.Text @map("url_mapa")
-  sortOrder Int      @default(0) @map("ordem")
-  createdAt DateTime @default(now()) @map("criado_em")
-  updatedAt DateTime @updatedAt @map("atualizado_em")
+  id           String   @id @default(cuid())
+  type         String   @map("tipo")
+  title        String   @map("titulo")
+  address      String   @map("endereco")
+  query        String   @map("busca")
+  mapUrl       String?  @map("url_mapa") @db.Text
+  massSchedule String?  @map("horarios_missas") @db.Text
+  sortOrder    Int      @default(0) @map("ordem")
+  createdAt    DateTime @default(now()) @map("criado_em")
+  updatedAt    DateTime @updatedAt @map("atualizado_em")
+
   @@map("locais")
 }
 
 model FinanceEntry {
   id          String      @id @default(cuid())
   type        FinanceType @map("tipo")
-  title       String @map("titulo")
-  description String?     @db.Text @map("descricao")
-  amountCents Int @map("valor_centavos")
-  occurredAt  DateTime @map("ocorrido_em")
-  category    String? @map("categoria")
+  title       String      @map("titulo")
+  description String?     @map("descricao") @db.Text
+  amountCents Int         @map("valor_centavos")
+  occurredAt  DateTime    @map("ocorrido_em")
+  category    String?     @map("categoria")
+  receiptUrl  String?     @map("url_comprovante") @db.Text
   createdAt   DateTime    @default(now()) @map("criado_em")
   updatedAt   DateTime    @updatedAt @map("atualizado_em")
+
   @@map("lancamentos_financeiros")
 }
 
+model FormCampaign {
+  id          String           @id @default(cuid())
+  title       String           @map("titulo")
+  description String?          @map("descricao") @db.Text
+  bannerUrl   String?          @map("url_banner") @db.Text
+  fieldsJson  String           @default("[]") @map("campos_json") @db.Text
+  active      Boolean          @default(true) @map("ativo")
+  expiresAt   DateTime?        @map("expira_em")
+  createdAt   DateTime         @default(now()) @map("criado_em")
+  updatedAt   DateTime         @updatedAt @map("atualizado_em")
+  submissions FormSubmission[]
+
+  @@map("campanhas_formulario")
+}
+
+model FormSubmission {
+  id        String       @id @default(cuid())
+  formId    String       @map("formulario_id")
+  form      FormCampaign @relation(fields: [formId], references: [id], onDelete: Cascade)
+  dataJson  String       @map("dados_json") @db.Text
+  createdAt DateTime     @default(now()) @map("criado_em")
+
+  @@index([formId, createdAt])
+  @@map("respostas_formulario")
+}
+
 model DriveCache {
-  id         String   @id
-  name       String @map("nome")
-  mimeType   String @map("tipo_mime")
-  webViewUrl String? @map("url_visualizacao")
+  id         String    @id
+  name       String    @map("nome")
+  mimeType   String    @map("tipo_mime")
+  webViewUrl String?   @map("url_visualizacao")
   modifiedAt DateTime? @map("modificado_em")
-  cachedAt   DateTime @default(now()) @map("cacheado_em")
+  cachedAt   DateTime  @default(now()) @map("cacheado_em")
+
   @@map("cache_drive")
 }
 
 model Challenge {
   id          String   @id @default(cuid())
-  title       String @map("titulo")
-  description String?  @db.Text @map("descricao")
+  title       String   @map("titulo")
+  description String?  @map("descricao") @db.Text
   points      Int      @default(0) @map("pontos")
   active      Boolean  @default(true) @map("ativo")
   createdAt   DateTime @default(now()) @map("criado_em")
   updatedAt   DateTime @updatedAt @map("atualizado_em")
+
   @@map("desafios")
 }
 
 model SaleCampaign {
   id          String   @id @default(cuid())
-  title       String @map("titulo")
-  description String?  @db.Text @map("descricao")
-  priceCents  Int @map("preco_centavos")
+  title       String   @map("titulo")
+  description String?  @map("descricao") @db.Text
+  priceCents  Int      @map("preco_centavos")
   active      Boolean  @default(true) @map("ativo")
   createdAt   DateTime @default(now()) @map("criado_em")
   updatedAt   DateTime @updatedAt @map("atualizado_em")
+
   @@map("campanhas_venda")
 }
 
+model InventoryItem {
+  id          String   @id @default(cuid())
+  name        String   @map("nome")
+  description String?  @map("descricao") @db.Text
+  quantity    Int      @default(1) @map("quantidade")
+  condition   String   @default("GOOD") @map("estado")
+  photoUrl    String?  @map("url_foto") @db.Text
+  active      Boolean  @default(true) @map("ativo")
+  createdAt   DateTime @default(now()) @map("criado_em")
+  updatedAt   DateTime @updatedAt @map("atualizado_em")
+  rentals     Rental[]
+
+  @@map("itens_patrimonio")
+}
 
 model Rental {
-  id            String    @id @default(cuid())
-  itemName      String @map("nome_item")
-  lenderName    String @map("responsavel_nome")
-  rentedAt      DateTime @map("retirado_em")
-  dueAt         DateTime @map("devolver_em")
-  takenBy       String @map("retirado_por")
-  description   String?   @db.Text @map("descricao")
-  conditionNote String?   @db.Text @map("observacao_estado")
-  status        String    @default("BORROWED") @map("status")
-  returnedAt    DateTime? @map("devolvido_em")
-  createdBy     String? @map("criado_por")
-  updatedBy     String? @map("atualizado_por")
-  returnedBy    String? @map("devolvido_por")
-  createdAt     DateTime  @default(now()) @map("criado_em")
-  updatedAt     DateTime  @updatedAt @map("atualizado_em")
+  id                    String         @id @default(cuid())
+  inventoryItemId       String?        @map("item_patrimonio_id")
+  inventoryItem         InventoryItem? @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
+  itemName              String         @map("nome_item")
+  quantity              Int            @default(1) @map("quantidade")
+  lenderName            String         @map("responsavel_nome")
+  rentedAt              DateTime       @map("retirado_em")
+  dueAt                 DateTime       @map("devolver_em")
+  takenBy               String         @map("retirado_por")
+  borrowerPhone         String?        @map("telefone_retirante")
+  description           String?        @map("descricao") @db.Text
+  conditionNote         String?        @map("observacao_estado") @db.Text
+  initialConditionPhoto String?        @map("foto_estado_inicial") @db.Text
+  conditionCaption      String?        @map("legenda_estado") @db.Text
+  status                String         @default("BORROWED") @map("status")
+  returnedAt            DateTime?      @map("devolvido_em")
+  createdBy             String?        @map("criado_por")
+  updatedBy             String?        @map("atualizado_por")
+  returnedBy            String?        @map("devolvido_por")
+  createdAt             DateTime       @default(now()) @map("criado_em")
+  updatedAt             DateTime       @updatedAt @map("atualizado_em")
+
+  @@index([inventoryItemId, status])
   @@map("emprestimos")
 }
 
 model ActivityLog {
   id        String   @id @default(cuid())
-  entity    String @map("entidade")
-  entityId  String @map("entidade_id")
-  action    String @map("acao")
+  entity    String   @map("entidade")
+  entityId  String   @map("entidade_id")
+  action    String   @map("acao")
   actor     String   @default("Administrador EJC") @map("ator")
-  payload   String   @db.Text @map("dados")
+  payload   String   @map("dados") @db.Text
   createdAt DateTime @default(now()) @map("criado_em")
+
   @@map("logs_atividade")
 }

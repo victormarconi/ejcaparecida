@@ -3,8 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { recordActivity, requestData, requireAdminApi, routeResponse } from "@/lib/http";
 
-const schema = z.object({ type: z.string().min(1), title: z.string().min(1), address: z.string().min(1), query: z.string().min(1), mapUrl: z.string().nullable().optional(), sortOrder: z.number().int().default(0) });
-const data = (value: z.infer<typeof schema>) => ({ ...value, mapUrl: value.mapUrl?.trim() || null });
+const schema = z.object({ type: z.string().min(1), title: z.string().min(1), address: z.string().min(1), query: z.string().min(1), mapUrl: z.string().nullable().optional(), massSchedule: z.string().nullable().optional(), sortOrder: z.number().int().default(0) });
+const data = (value: z.infer<typeof schema>) => ({ ...value, mapUrl: value.mapUrl?.trim() || null, massSchedule: value.massSchedule?.trim() || null });
 
 export async function GET(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error) return auth.error; return routeResponse(request, { items: await prisma.location.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }) }); }
 export async function POST(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error || !auth.user) return auth.error!; const item = await prisma.location.create({ data: data(schema.parse(await requestData(request))) }); await recordActivity(auth.user, "location", item.id, "CREATED", { title: item.title }); return routeResponse(request, { item }, 201, "/admin/localizacoes"); }
