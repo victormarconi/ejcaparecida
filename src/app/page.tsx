@@ -54,7 +54,7 @@ export default async function HomePage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={campaign.bannerUrl} alt={`Banner: ${campaign.title}`} />
       </div>}
-      <div className="campaign-copy"><span className="eyebrow">Inscrições e pedidos</span><h1>{campaign.title}</h1>{campaign.description && <p>{campaign.description}</p>}<CampaignForm campaignId={campaign.id} fields={campaignFields} /></div>
+      <div className="campaign-copy"><span className="eyebrow">Inscrições e pedidos</span><h1>{campaign.title}</h1>{campaign.description && <p>{campaign.description}</p>}<CampaignForm campaignId={campaign.id} fields={campaignFields} title={campaign.title} description={campaign.description} /></div>
     </div></section>}
 
     <section className={`section calendar-section${campaign ? "" : " first-section"}`} id="eventos"><div className="container">
