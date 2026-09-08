@@ -77,6 +77,8 @@ const COLOR_OPTIONS = [
 ];
 
 const FALLBACK_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+  luto: { bg: "rgba(15, 23, 42, 0.95)", border: "rgba(255, 255, 255, 0.45)", text: "#f8fafc", dot: "#ffffff" },
+  preto: { bg: "rgba(15, 23, 42, 0.95)", border: "rgba(255, 255, 255, 0.45)", text: "#f8fafc", dot: "#ffffff" },
   purple: { bg: "rgba(168, 85, 247, 0.15)", border: "rgba(168, 85, 247, 0.35)", text: "#c084fc", dot: "#c084fc" },
   rose: { bg: "rgba(244, 63, 94, 0.15)", border: "rgba(244, 63, 94, 0.35)", text: "#fb7185", dot: "#fb7185" },
 };

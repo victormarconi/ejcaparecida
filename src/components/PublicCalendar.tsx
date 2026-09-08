@@ -22,6 +22,8 @@ const EVENT_COLORS: Record<string, { bg: string; border: string; text: string; d
   emerald: { bg: "rgba(16, 185, 129, 0.15)", border: "rgba(16, 185, 129, 0.35)", text: "#34d399", dot: "#34d399", label: "Pastoral" },
   gold: { bg: "rgba(234, 179, 8, 0.15)", border: "rgba(234, 179, 8, 0.35)", text: "#facc15", dot: "#facc15", label: "Vendas" },
   amber: { bg: "rgba(245, 158, 11, 0.15)", border: "rgba(245, 158, 11, 0.35)", text: "#fbbf24", dot: "#fbbf24", label: "Festa" },
+  luto: { bg: "rgba(15, 23, 42, 0.95)", border: "rgba(255, 255, 255, 0.4)", text: "#f8fafc", dot: "#ffffff", label: "Homenagem" },
+  preto: { bg: "rgba(15, 23, 42, 0.95)", border: "rgba(255, 255, 255, 0.4)", text: "#f8fafc", dot: "#ffffff", label: "Homenagem" },
   purple: { bg: "rgba(168, 85, 247, 0.18)", border: "rgba(168, 85, 247, 0.4)", text: "#c084fc", dot: "#c084fc", label: "Solene" },
   rose: { bg: "rgba(244, 63, 94, 0.15)", border: "rgba(244, 63, 94, 0.35)", text: "#fb7185", dot: "#fb7185", label: "Mariano" },
 };
