@@ -1,57 +1,180 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Calendar,
+  FileText,
+  DollarSign,
+  Bell,
+  Users,
+  MapPin,
+  Package,
+  KeyRound,
+  LogOut,
+  Sparkles,
+} from "lucide-react";
 
-export function AppShell({ user, children }: { user: { name: string; role: string }; children: React.ReactNode }) {
+export function AppShell({
+  user,
+  children,
+}: {
+  user: { name: string; role: string; username?: string | null };
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+
+  const isFinanceUser = user.username === "financas";
+
+  // Menu organizado em seções limpas estilo Gestor PDM1 / Securo (sem duplicidades)
+  const navSections = [
+    {
+      title: "Principal",
+      items: [
+        { label: "Visão Geral", href: "/admin", icon: LayoutDashboard },
+        { label: "Calendário", href: "/admin/calendario", icon: Calendar },
+        { label: "Documentos", href: "/membros/documentos", icon: FileText },
+      ],
+    },
+    {
+      title: "Gestão & Paróquia",
+      items: [
+        {
+          label: isFinanceUser ? "Finanças (Gestão)" : "Finanças (Consulta)",
+          href: "/admin/financas",
+          icon: DollarSign,
+          badge: isFinanceUser ? "Gestor" : "Consulta",
+        },
+        { label: "Avisos & Murais", href: "/admin/avisos", icon: Bell },
+        { label: "Equipe & Liderança", href: "/admin/equipe", icon: Users },
+        { label: "Formulários", href: "/admin/formularios", icon: Sparkles },
+        { label: "Patrimônio & Estoque", href: "/admin/aluguel", icon: Package },
+        { label: "Localizações", href: "/admin/localizacoes", icon: MapPin },
+      ],
+    },
+  ];
+
   return (
-    <div className="app-layout">
-      <aside className="sidebar">
-        <Link className="brand" href="/">
-          <Image src="/uploads/logo-ejc-white.png" width={34} height={34} alt="" />
-          <span>EJC Aparecida</span>
-        </Link>
-        <nav aria-label="Área interna">
-          <Link href="/membros">Visão geral</Link>
-          <Link href="/membros/calendario">Calendário</Link>
-          <Link href="/membros/documentos">Documentos</Link>
-          <Link href="/membros/financas">Finanças</Link>
-          {user.role === "ADMIN" && (
-            <>
-              <Link href="/admin">Administração</Link>
-              <Link href="/admin/avisos">Avisos</Link>
-              <Link href="/admin/calendario">Eventos</Link>
-              <Link href="/admin/equipe">Equipe</Link>
-              <Link href="/admin/formularios">Formulários</Link>
-              <Link href="/admin/financas">Finanças</Link>
-              <Link href="/admin/localizacoes">Localizações</Link>
-              <Link href="/admin/aluguel">Patrimônio &amp; Estoque</Link>
-            </>
-          )}
-          <Link href="/perfil" style={{ marginTop: "12px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px" }}>
-            🔑 Alterar Senha
+    <div className="ejc-layout">
+      {/* SIDEBAR COM SCROLL INDEPENDENTE E ESTILO GESTOR PDM1 */}
+      <aside className="ejc-sidebar">
+        {/* Brand */}
+        <div className="ejc-sidebar-brand">
+          <Link href="/admin" className="brand-link">
+            <Image
+              src="/uploads/logo-ejc-white.png"
+              width={34}
+              height={34}
+              alt="Logo EJC"
+              className="brand-logo"
+            />
+            <div className="brand-text">
+              <span className="brand-title">EJC Aparecida</span>
+              <span className="brand-badge">Gestão Oficial</span>
+            </div>
           </Link>
+        </div>
+
+        {/* Navigation Sections */}
+        <nav className="ejc-nav" aria-label="Menu do Sistema">
+          {navSections.map((section) => (
+            <div key={section.title} className="ejc-nav-section">
+              <span className="ejc-nav-heading">{section.title}</span>
+              <div className="ejc-nav-group">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== "/admin" && pathname.startsWith(item.href));
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`ejc-nav-link ${isActive ? "is-active" : ""}`}
+                    >
+                      <Icon size={18} className="nav-icon" />
+                      <span className="nav-label">{item.label}</span>
+                      {item.badge && (
+                        <span
+                          className={`nav-badge ${
+                            item.badge === "Gestor" ? "badge-emerald" : "badge-sky"
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Seção Conta */}
+          <div className="ejc-nav-section">
+            <span className="ejc-nav-heading">Segurança</span>
+            <div className="ejc-nav-group">
+              <Link
+                href="/perfil"
+                className={`ejc-nav-link ${pathname === "/perfil" ? "is-active" : ""}`}
+              >
+                <KeyRound size={18} className="nav-icon" />
+                <span className="nav-label">Alterar Senha</span>
+              </Link>
+            </div>
+          </div>
         </nav>
-        <div className="sidebar-footer">
-          <span>{user.name}</span>
-          <form action="/api/logout" method="post">
-            <button className="button secondary small" type="submit">
-              Sair
+
+        {/* Sidebar Footer */}
+        <div className="ejc-sidebar-footer">
+          <div className="user-profile">
+            <div className="user-avatar">
+              {user.name ? user.name.slice(0, 2).toUpperCase() : "EJ"}
+            </div>
+            <div className="user-info">
+              <span className="user-name">{user.name}</span>
+              <span className="user-role">
+                {user.username === "financas"
+                  ? "Acesso Financeiro"
+                  : "Equipe Geral"}
+              </span>
+            </div>
+          </div>
+          <form action="/api/logout" method="post" className="logout-form">
+            <button
+              type="submit"
+              className="logout-button"
+              title="Sair da Conta"
+            >
+              <LogOut size={16} />
+              <span>Sair</span>
             </button>
           </form>
         </div>
       </aside>
-      <main className="app-main">
-        <header className="app-header">
-          <strong>Área interna</strong>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <Link className="button secondary small" href="/perfil">
-              Minha Senha
+
+      {/* ÁREA PRINCIPAL COM SCROLL FLUIDO */}
+      <main className="ejc-main">
+        <header className="ejc-topbar">
+          <div className="topbar-left">
+            <span className="status-dot" />
+            <span className="portal-label">EJC Nossa Senhora Aparecida</span>
+          </div>
+          <div className="topbar-right">
+            <Link className="topbar-btn secondary" href="/perfil">
+              <KeyRound size={15} />
+              <span>Minha Senha</span>
             </Link>
-            <Link className="button secondary small" href="/">
-              Abrir site
+            <Link className="topbar-btn primary" href="/" target="_blank">
+              <span>Abrir Site</span>
             </Link>
           </div>
         </header>
-        <div className="app-content">{children}</div>
+
+        <div className="ejc-content">{children}</div>
       </main>
     </div>
   );

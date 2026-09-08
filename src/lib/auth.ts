@@ -89,7 +89,7 @@ export async function requireUser(admin = false) {
 export async function requestUser(token?: string | null) {
   const session = verifySessionToken(token);
   if (!session) return null;
-  return prisma.user.findFirst({ where: { id: session.userId, active: true }, select: { id: true, name: true, role: true } });
+  return prisma.user.findFirst({ where: { id: session.userId, active: true }, select: { id: true, name: true, role: true, username: true, email: true } });
 }
 
 export { COOKIE_NAME };
