@@ -40,11 +40,18 @@ export function PdmModal({
 
   if (!open) return null;
 
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
   return (
     <div
       className="pdm-modal-overlay"
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+          onClose();
+        }
       }}
       aria-modal="true"
       role="dialog"
