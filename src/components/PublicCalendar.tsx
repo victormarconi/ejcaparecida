@@ -329,17 +329,7 @@ export function PublicCalendar({
                         </span>
                       )}
 
-                      {hasEvents && (
-                        <span
-                          style={{
-                            width: "7px",
-                            height: "7px",
-                            borderRadius: "50%",
-                            background: "#38bdf8",
-                            boxShadow: "0 0 6px #38bdf8",
-                          }}
-                        />
-                      )}
+
                     </div>
 
                     {/* Visualização Desktop: Pills com horário e nome do evento */}

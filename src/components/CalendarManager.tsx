@@ -474,18 +474,7 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                       </span>
                     )}
 
-                    {hasEvents && (
-                      <span
-                        style={{
-                          width: "7px",
-                          height: "7px",
-                          borderRadius: "50%",
-                          background: "#38bdf8",
-                          boxShadow: "0 0 6px #38bdf8",
-                        }}
-                        title={`${dayEvents.length} evento(s)`}
-                      />
-                    )}
+
                   </div>
 
                   {/* Pills de Eventos Limpas */}
