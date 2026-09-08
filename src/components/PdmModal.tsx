@@ -50,7 +50,7 @@ export function PdmModal({
       role="dialog"
     >
       <div
-        className="pdm-modal-card"
+        className="pdm-modal-card pdm-modal-panel"
         ref={modalRef}
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
