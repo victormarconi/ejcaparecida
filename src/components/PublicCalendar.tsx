@@ -248,8 +248,9 @@ export function PublicCalendar({
             return (
               <div
                 key={cell.key}
+                className="public-calendar-day"
                 style={{
-                  minHeight: "72px",
+                  minHeight: "88px",
                   padding: "6px 8px",
                   borderRadius: "10px",
                   border: cell.today
@@ -329,17 +330,17 @@ export function PublicCalendar({
                       )}
                     </div>
 
-                    {/* Indicadores Visuais de Evento no Dia */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px", width: "100%", marginTop: "2px" }}>
+                    {/* Visualização Desktop: Pills com horário e nome do evento */}
+                    <div className="calendar-desktop-events" style={{ display: "flex", flexDirection: "column", gap: "3px", width: "100%", marginTop: "2px" }}>
                       {cell.events?.slice(0, 2).map((event) => {
                         const col = EVENT_COLORS[event.color || "sky"] || EVENT_COLORS.sky;
                         return (
                           <div
                             key={event.id}
                             style={{
-                              fontSize: "0.70rem",
-                              padding: "2px 5px",
-                              borderRadius: "5px",
+                              fontSize: "0.72rem",
+                              padding: "2px 6px",
+                              borderRadius: "6px",
                               background: col.bg,
                               color: col.text,
                               border: `1px solid ${col.border}`,
@@ -352,7 +353,7 @@ export function PublicCalendar({
                               whiteSpace: "nowrap",
                             }}
                           >
-                            <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: col.dot, flexShrink: 0 }} />
+                            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: col.dot, flexShrink: 0 }} />
                             <strong style={{ flexShrink: 0 }}>{eventTime(event.startsAt)}</strong>
                             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {event.title}
@@ -361,8 +362,33 @@ export function PublicCalendar({
                         );
                       })}
                       {cell.events && cell.events.length > 2 && (
-                        <span style={{ fontSize: "0.66rem", color: "var(--brand)", fontWeight: 700 }}>
+                        <span style={{ fontSize: "0.68rem", color: "var(--brand)", fontWeight: 700, paddingLeft: "4px" }}>
                           +{cell.events.length - 2} mais
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Visualização Mobile: Apenas os pontos de luz (dots) coloridos para não poluir */}
+                    <div className="calendar-mobile-dots" style={{ display: "none", gap: "4px", justifyContent: "center", alignItems: "center", marginTop: "4px", flexWrap: "wrap" }}>
+                      {cell.events?.slice(0, 3).map((event) => {
+                        const col = EVENT_COLORS[event.color || "sky"] || EVENT_COLORS.sky;
+                        return (
+                          <span
+                            key={event.id}
+                            style={{
+                              width: "6px",
+                              height: "6px",
+                              borderRadius: "50%",
+                              background: col.dot,
+                              boxShadow: `0 0 6px ${col.dot}`,
+                              display: "inline-block",
+                            }}
+                          />
+                        );
+                      })}
+                      {cell.events && cell.events.length > 3 && (
+                        <span style={{ fontSize: "0.60rem", color: "var(--brand)", fontWeight: 800 }}>
+                          +
                         </span>
                       )}
                     </div>
