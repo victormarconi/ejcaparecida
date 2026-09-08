@@ -49,6 +49,7 @@ export function AppShell({
   ];
 
 const sidebarRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (sidebarRef.current) {
       sidebarRef.current.scrollTop = 0;
@@ -77,7 +78,7 @@ const sidebarRef = useRef<HTMLElement>(null);
         </div>
 
         {/* Navigation Sections */}
-        <nav className="ejc-nav" aria-label="Menu do Sistema">
+        <nav className="ejc-nav" ref={navRef} aria-label="Menu do Sistema">
           {navSections.map((section) => (
             <div key={section.title} className="ejc-nav-section">
               <span className="ejc-nav-heading">{section.title}</span>

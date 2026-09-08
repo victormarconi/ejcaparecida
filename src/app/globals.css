@@ -530,7 +530,7 @@ tr:last-child td { border-bottom: 0; }
 }
 
 .ejc-sidebar {
-  width: 240px;
+  width: 250px;
   flex-shrink: 0;
   background: #0a101d;
   border-right: 1px solid rgba(255, 255, 255, 0.07);
@@ -540,7 +540,7 @@ tr:last-child td { border-bottom: 0; }
   top: 0;
   height: 100vh;
   max-height: 100vh;
-  overflow: visible;
+  overflow: hidden;
   z-index: 40;
 }
 
@@ -577,17 +577,12 @@ tr:last-child td { border-bottom: 0; }
 }
 
 .ejc-nav {
-  padding: 8px 10px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-  scrollbar-width: none;
-}
-.ejc-nav::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
 }
 
 .ejc-nav-section {
