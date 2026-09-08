@@ -37,6 +37,25 @@ function formatDate(iso?: string | null) {
   });
 }
 
+function clampValidDate(val: string): string {
+  if (!val) return "";
+  const [datePart, timePart] = val.split("T");
+  if (!datePart) return val;
+  const parts = datePart.split("-");
+  if (parts.length !== 3) return val;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  let day = parseInt(parts[2], 10);
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return val;
+  const maxDays = new Date(year, month, 0).getDate();
+  if (day > maxDays) {
+    day = maxDays;
+  }
+  const safeDay = String(day).padStart(2, "0");
+  const safeMonth = String(month).padStart(2, "0");
+  return `${year}-${safeMonth}-${safeDay}${timePart ? `T${timePart}` : ""}`;
+}
+
 function parseFields(json: string): DynamicFormField[] {
   try {
     const parsed = JSON.parse(json);
@@ -96,11 +115,50 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
     setTitle(campaign.title);
     setDescription(campaign.description || "");
     setBannerUrl(campaign.bannerUrl || "");
-    setExpiresAt(campaign.expiresAt ? new Date(campaign.expiresAt).toISOString().slice(0, 16) : "");
+    setExpiresAt(campaign.expiresAt ? clampValidDate(new Date(campaign.expiresAt).toISOString().slice(0, 16)) : "");
     setActive(campaign.active);
     setFields(parseFields(campaign.fieldsJson));
     setError("");
     setModalOpen(true);
+  }
+
+  async function compressImage(file: File): Promise<Blob> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_WIDTH = 1600;
+        const MAX_HEIGHT = 1600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(file);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => resolve(blob || file),
+          "image/webp",
+          0.85
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = URL.createObjectURL(file);
+    });
   }
 
   async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -111,8 +169,13 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
     setError("");
 
     try {
+      const compressedBlob = await compressImage(file);
+      const uploadFile = new File([compressedBlob], file.name.replace(/\.[^.]+$/, ".webp"), {
+        type: "image/webp",
+      });
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", uploadFile);
       formData.append("kind", "banner");
 
       const res = await fetch("/api/admin/uploads", {
@@ -120,8 +183,15 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao fazer upload do banner");
+      const rawText = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(rawText.slice(0, 120) || "Erro ao comunicar com o servidor");
+      }
+
+      if (!res.ok) throw new Error(data.error || "Erro ao fazer upload da imagem");
 
       setBannerUrl(data.url);
     } catch (err: unknown) {
@@ -196,7 +266,7 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
         description: description.trim() || null,
         bannerUrl: bannerUrl.trim() || null,
         active,
-        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+        expiresAt: expiresAt ? new Date(clampValidDate(expiresAt)).toISOString() : null,
         fields,
       };
 
@@ -490,7 +560,8 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                 <input
                   type="datetime-local"
                   value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
+                  onChange={(e) => setExpiresAt(clampValidDate(e.target.value))}
+                  onBlur={() => setExpiresAt(clampValidDate(expiresAt))}
                   style={{ flex: 1, height: "40px", boxSizing: "border-box" }}
                 />
                 {expiresAt && (
