@@ -4,9 +4,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { recordActivity, requestData, requireAdminApi, routeResponse } from "@/lib/http";
 
-const schema = z.object({ title: z.string().min(1), description: z.string().nullable().optional(), location: z.string().nullable().optional(), startsAt: z.string().datetime(), endsAt: z.string().datetime().nullable().optional(), visibility: z.nativeEnum(EventVisibility) });
+const schema = z.object({ title: z.string().min(1), description: z.string().nullable().optional(), location: z.string().nullable().optional(), startsAt: z.string().datetime(), endsAt: z.string().datetime().nullable().optional(), visibility: z.nativeEnum(EventVisibility), color: z.string().nullable().optional() });
 const clean = (value?: string | null) => value?.trim() || null;
-const data = (value: z.infer<typeof schema>) => ({ ...value, description: clean(value.description), location: clean(value.location), startsAt: new Date(value.startsAt), endsAt: value.endsAt ? new Date(value.endsAt) : null });
+const data = (value: z.infer<typeof schema>) => ({ ...value, description: clean(value.description), location: clean(value.location), color: clean(value.color) || "sky", startsAt: new Date(value.startsAt), endsAt: value.endsAt ? new Date(value.endsAt) : null });
 
 export async function GET(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error) return auth.error; return routeResponse(request, { items: await prisma.event.findMany({ orderBy: { startsAt: "desc" } }) }); }
 export async function POST(request: NextRequest) { const auth = await requireAdminApi(request); if (auth.error || !auth.user) return auth.error!; const item = await prisma.event.create({ data: data(schema.parse(await requestData(request))) }); await recordActivity(auth.user, "event", item.id, "CREATED", { title: item.title }); return routeResponse(request, { item }, 201, "/admin/calendario"); }

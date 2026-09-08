@@ -11,6 +11,7 @@ export type EventItem = {
   location: string | null;
   startsAt: string;
   endsAt: string | null;
+  color?: string | null;
   visibility: "PUBLIC" | "MEMBERS";
   createdAt: string;
   updatedAt: string;
@@ -66,6 +67,20 @@ function toLocalInput(iso?: string | null) {
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
 
+
+const COLOR_OPTIONS = [
+  { id: "sky", label: "Azul Oficial", bg: "rgba(2, 132, 199, 0.15)", border: "rgba(2, 132, 199, 0.3)", text: "#38bdf8", dot: "#38bdf8" },
+  { id: "gold", label: "Dourado / Festa", bg: "rgba(234, 179, 8, 0.15)", border: "rgba(234, 179, 8, 0.35)", text: "#facc15", dot: "#facc15" },
+  { id: "emerald", label: "Verde / Pastoral", bg: "rgba(16, 185, 129, 0.15)", border: "rgba(16, 185, 129, 0.35)", text: "#34d399", dot: "#34d399" },
+  { id: "purple", label: "Roxo / Penitencial", bg: "rgba(168, 85, 247, 0.15)", border: "rgba(168, 85, 247, 0.35)", text: "#c084fc", dot: "#c084fc" },
+  { id: "rose", label: "Rosa / Mariano", bg: "rgba(244, 63, 94, 0.15)", border: "rgba(244, 63, 94, 0.35)", text: "#fb7185", dot: "#fb7185" },
+  { id: "amber", label: "Laranja / Jovem", bg: "rgba(245, 158, 11, 0.15)", border: "rgba(245, 158, 11, 0.35)", text: "#fbbf24", dot: "#fbbf24" },
+];
+
+function getColor(id?: string | null) {
+  return COLOR_OPTIONS.find((c) => c.id === id) || COLOR_OPTIONS[0];
+}
+
 export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] }) {
   const [events, setEvents] = useState<EventItem[]>(initialEvents);
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
@@ -94,6 +109,7 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [visibility, setVisibility] = useState<"PUBLIC" | "MEMBERS">("PUBLIC");
+  const [color, setColor] = useState("sky");
 
   // Delete modal
   const [deletingEvent, setDeletingEvent] = useState<EventItem | null>(null);
@@ -114,6 +130,7 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
     }
     setEndsAt("");
     setVisibility("PUBLIC");
+    setColor("sky");
     setError("");
     setModalOpen(true);
   }
@@ -126,6 +143,7 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
     setStartsAt(toLocalInput(event.startsAt));
     setEndsAt(toLocalInput(event.endsAt));
     setVisibility(event.visibility);
+    setColor(event.color || "sky");
     setError("");
     setModalOpen(true);
   }
@@ -143,6 +161,7 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
         startsAt: new Date(startsAt).toISOString(),
         endsAt: null,
         visibility,
+        color,
       };
 
       const url = "/api/admin/calendario";
@@ -474,15 +493,9 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                           fontSize: "0.74rem",
                           padding: "3px 6px",
                           borderRadius: "6px",
-                          background:
-                            ev.visibility === "PUBLIC"
-                              ? "rgba(56, 189, 248, 0.12)"
-                              : "rgba(168, 85, 247, 0.12)",
-                          color: ev.visibility === "PUBLIC" ? "#38bdf8" : "#c084fc",
-                          border:
-                            ev.visibility === "PUBLIC"
-                              ? "1px solid rgba(56, 189, 248, 0.25)"
-                              : "1px solid rgba(168, 85, 247, 0.25)",
+                          background: getColor(ev.color).bg,
+                          color: getColor(ev.color).text,
+                          border: `1px solid ${getColor(ev.color).border}`,
                           display: "flex",
                           alignItems: "center",
                           gap: "5px",
@@ -728,22 +741,32 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                     </div>
                   </div>
 
-                  <span
-                    className="pdm-badge"
-                    style={{
-                      background:
-                        ev.visibility === "PUBLIC"
-                          ? "rgba(14, 165, 233, 0.12)"
-                          : "rgba(168, 85, 247, 0.12)",
-                      color: ev.visibility === "PUBLIC" ? "#38bdf8" : "#c084fc",
-                      borderColor:
-                        ev.visibility === "PUBLIC"
-                          ? "rgba(14, 165, 233, 0.25)"
-                          : "rgba(168, 85, 247, 0.25)",
-                    }}
-                  >
-                    {ev.visibility === "PUBLIC" ? "Público" : "Membros"}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span
+                      style={{
+                        width: "10px",
+                        height: "10px",
+                        borderRadius: "50%",
+                        background: getColor(ev.color).dot,
+                      }}
+                    />
+                    <span
+                      className="pdm-badge"
+                      style={{
+                        background:
+                          ev.visibility === "PUBLIC"
+                            ? "rgba(14, 165, 233, 0.12)"
+                            : "rgba(168, 85, 247, 0.12)",
+                        color: ev.visibility === "PUBLIC" ? "#38bdf8" : "#c084fc",
+                        borderColor:
+                          ev.visibility === "PUBLIC"
+                            ? "rgba(14, 165, 233, 0.25)"
+                            : "rgba(168, 85, 247, 0.25)",
+                      }}
+                    >
+                      {ev.visibility === "PUBLIC" ? "Público" : "Membros"}
+                    </span>
+                  </div>
                 </div>
 
                 {ev.description && (
@@ -833,16 +856,29 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
             </label>
           </div>
 
-          <label className="field">
-            Visibilidade do Evento *
-            <select
-              value={visibility}
-              onChange={(e) => setVisibility(e.target.value as "PUBLIC" | "MEMBERS")}
-            >
-              <option value="PUBLIC">Público (Visível no site)</option>
-              <option value="MEMBERS">Apenas Membros Internos</option>
-            </select>
-          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <label className="field">
+              Visibilidade do Evento *
+              <select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as "PUBLIC" | "MEMBERS")}
+              >
+                <option value="PUBLIC">Público (Visível no site)</option>
+                <option value="MEMBERS">Apenas Membros Internos</option>
+              </select>
+            </label>
+
+            <label className="field">
+              Cor de Destaque no Calendário
+              <select value={color} onChange={(e) => setColor(e.target.value)}>
+                {COLOR_OPTIONS.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           <label className="field">
             Descrição / Pauta

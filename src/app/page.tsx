@@ -36,6 +36,7 @@ export default async function HomePage() {
     title: event.title,
     description: event.description,
     location: event.location,
+    color: event.color || "sky",
     startsAt: event.startsAt.toISOString(),
     endsAt: event.endsAt?.toISOString() || null,
   }));

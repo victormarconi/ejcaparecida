@@ -9,6 +9,7 @@ export type PublicEvent = {
   location: string | null;
   startsAt: string;
   endsAt: string | null;
+  color?: string | null;
 };
 
 const timeZone = "America/Fortaleza";
@@ -31,6 +32,16 @@ function eventDate(value: string) {
 function eventTime(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone, hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
+
+
+const EVENT_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+  sky: { bg: "rgba(2, 132, 199, 0.15)", border: "rgba(2, 132, 199, 0.3)", text: "#38bdf8", dot: "#38bdf8" },
+  gold: { bg: "rgba(234, 179, 8, 0.15)", border: "rgba(234, 179, 8, 0.35)", text: "#facc15", dot: "#facc15" },
+  emerald: { bg: "rgba(16, 185, 129, 0.15)", border: "rgba(16, 185, 129, 0.35)", text: "#34d399", dot: "#34d399" },
+  purple: { bg: "rgba(168, 85, 247, 0.15)", border: "rgba(168, 85, 247, 0.35)", text: "#c084fc", dot: "#c084fc" },
+  rose: { bg: "rgba(244, 63, 94, 0.15)", border: "rgba(244, 63, 94, 0.35)", text: "#fb7185", dot: "#fb7185" },
+  amber: { bg: "rgba(245, 158, 11, 0.15)", border: "rgba(245, 158, 11, 0.35)", text: "#fbbf24", dot: "#fbbf24" },
+};
 
 export function PublicCalendar({ events, initialMonth, now }: { events: PublicEvent[]; initialMonth: string; now: string }) {
   const [visibleMonth, setVisibleMonth] = useState(initialMonth.slice(0, 7));
@@ -106,9 +117,9 @@ export function PublicCalendar({ events, initialMonth, now }: { events: PublicEv
                         fontSize: "0.72rem",
                         padding: "2px 5px",
                         borderRadius: "5px",
-                        background: "rgba(2, 132, 199, 0.12)",
-                        color: "#38bdf8",
-                        border: "1px solid rgba(2, 132, 199, 0.25)",
+                        background: (EVENT_COLORS[event.color || "sky"] || EVENT_COLORS.sky).bg,
+                        color: (EVENT_COLORS[event.color || "sky"] || EVENT_COLORS.sky).text,
+                        border: `1px solid ${(EVENT_COLORS[event.color || "sky"] || EVENT_COLORS.sky).border}`,
                         display: "flex",
                         alignItems: "center",
                         gap: "4px",
