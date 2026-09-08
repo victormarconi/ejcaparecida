@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CampaignForm } from "@/components/CampaignForm";
 import { PublicCalendar } from "@/components/PublicCalendar";
-import { CopyPix, LocationTabs, ThemeToggle } from "@/components/PublicInteractions";
+import { CopyPix, LocationTabs, ThemeToggle, PixDonationSection } from "@/components/PublicInteractions";
 import { parseFormFields } from "@/lib/forms";
 import { prisma } from "@/lib/prisma";
 
@@ -86,22 +86,13 @@ export default async function HomePage() {
       {!team.length && <div className="card empty">A equipe dirigente será apresentada em breve.</div>}
     </div></section>
 
-    <section className="section alt"><div className="container donation">
-      <div className="card">
-        <span className="eyebrow">Doação</span>
-        <h2>{pixTitle}</h2>
-        <p>{pixDescription}</p>
-      </div>
-      <div className="card pix-card">
-        <span>PIX</span>
-        <strong>{pixKey}</strong>
-        {pixBeneficiary && (
-          <small style={{ display: "block", color: "rgba(255, 255, 255, 0.8)", fontSize: "0.82rem", margin: "2px 0 10px" }}>
-            Beneficiário: {pixBeneficiary}
-          </small>
-        )}
-        <CopyPix value={pixKey} />
-      </div>
+    <section className="section alt" id="doacao"><div className="container">
+      <PixDonationSection
+        title={pixTitle}
+        description={pixDescription}
+        pixKey={pixKey}
+        beneficiary={pixBeneficiary}
+      />
     </div></section>
 
     <section className="section" id="instagram"><div className="container">

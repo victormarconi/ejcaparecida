@@ -16,6 +16,112 @@ export function ThemeToggle() {
   return <button className="icon-button" type="button" onClick={toggle} aria-label="Alternar tema">◐</button>;
 }
 
+export function PixDonationSection({
+  title = "Apoie a missão do EJC",
+  description = "Quem desejar contribuir com a caminhada do grupo pode fazer uma doação pelo PIX.",
+  pixKey,
+  beneficiary,
+}: {
+  title?: string;
+  description?: string;
+  pixKey: string;
+  beneficiary?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    await navigator.clipboard.writeText(pixKey);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div
+      className="card"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+        gap: "24px",
+        alignItems: "center",
+        padding: "24px 28px",
+        borderRadius: "18px",
+        background: "linear-gradient(135deg, rgba(13, 21, 36, 0.95), rgba(7, 11, 20, 0.98))",
+        border: "1px solid rgba(56, 189, 248, 0.2)",
+        boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+      }}
+    >
+      <div>
+        <span className="eyebrow" style={{ color: "#38bdf8", textTransform: "uppercase", fontSize: "0.76rem", letterSpacing: "0.06em", fontWeight: 700 }}>
+          Doação e Apoio Pastoral
+        </span>
+        <h2 style={{ margin: "4px 0 8px", fontSize: "1.5rem", color: "#ffffff", fontWeight: 800, letterSpacing: "-0.02em" }}>
+          {title}
+        </h2>
+        <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.90rem", lineHeight: 1.5 }}>
+          {description}
+        </p>
+      </div>
+
+      <div
+        style={{
+          background: "rgba(10, 16, 28, 0.75)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          borderRadius: "14px",
+          padding: "16px 18px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+          <span style={{ fontSize: "0.76rem", fontWeight: 700, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Chave PIX
+          </span>
+          {beneficiary && (
+            <span style={{ fontSize: "0.74rem", color: "#94a3b8" }}>
+              Titular: <strong style={{ color: "#cbd5e1" }}>{beneficiary}</strong>
+            </span>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: "rgba(255, 255, 255, 0.04)",
+            border: "1px solid rgba(255, 255, 255, 0.12)",
+            borderRadius: "10px",
+            padding: "8px 12px",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <code style={{ fontSize: "1.05rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.02em", wordBreak: "break-all" }}>
+            {pixKey}
+          </code>
+          <button
+            type="button"
+            className="pdm-btn-primary pdm-btn-compact"
+            onClick={copy}
+            style={{
+              flexShrink: 0,
+              background: copied ? "#10b981" : "var(--brand)",
+              transition: "all 0.2s ease",
+            }}
+          >
+            {copied ? "✓ Copiado!" : "Copiar Chave PIX"}
+          </button>
+        </div>
+
+        <small style={{ fontSize: "0.72rem", color: "#64748b" }}>
+          Copie a chave acima e use a opção PIX no aplicativo do seu banco.
+        </small>
+      </div>
+    </div>
+  );
+}
+
 export function CopyPix({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
