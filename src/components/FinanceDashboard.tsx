@@ -45,16 +45,26 @@ function inputDate(value: string | Date) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
-function monthsFrom(referenceDate: string) {
-  const parts = dateParts(referenceDate);
-  const base = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, 1));
-  return [0, 1, 2].map((offset) => {
-    const date = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() - offset, 1));
-    return {
-      key: `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`,
-      label: new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(date),
-    };
-  });
+function getAllAvailableMonths(rows: FinanceRow[], referenceDate: string) {
+  const monthMap = new Map<string, string>();
+  
+  const currentKey = monthKey(referenceDate);
+  const currentLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(referenceDate));
+  monthMap.set(currentKey, currentLabel);
+
+  for (const row of rows) {
+    const key = monthKey(row.occurredAt);
+    if (!monthMap.has(key)) {
+      const [year, month] = key.split("-").map(Number);
+      const d = new Date(Date.UTC(year, month - 1, 1));
+      const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(d);
+      monthMap.set(key, label);
+    }
+  }
+
+  return Array.from(monthMap.entries())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([key, label]) => ({ key, label }));
 }
 
 function emptyForm(referenceDate: string): FinanceForm {
@@ -115,9 +125,9 @@ async function compressImageFile(file: File): Promise<Blob> {
 }
 
 export function FinanceDashboard({ initialRows, referenceDate, canManage = false }: { initialRows: FinanceRow[]; referenceDate: string; canManage?: boolean }) {
-  const months = useMemo(() => monthsFrom(referenceDate), [referenceDate]);
   const [rows, setRows] = useState(initialRows);
-  const [selectedMonth, setSelectedMonth] = useState(months[0].key);
+  const months = useMemo(() => getAllAvailableMonths(rows, referenceDate), [rows, referenceDate]);
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [view, setView] = useState<"cash" | "reports">("cash");
   const [form, setForm] = useState<FinanceForm>(() => emptyForm(referenceDate));
   const [editing, setEditing] = useState<string | null>(null);
@@ -130,10 +140,10 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
   const [error, setError] = useState("");
 
   const balance = rows.reduce((total, row) => total + (row.type === "INCOME" ? row.amountCents : -row.amountCents), 0);
-  const currentRows = rows.filter((row) => monthKey(row.occurredAt) === months[0].key);
-  const currentIncome = currentRows.filter((row) => row.type === "INCOME").reduce((total, row) => total + row.amountCents, 0);
-  const currentExpense = currentRows.filter((row) => row.type === "EXPENSE").reduce((total, row) => total + row.amountCents, 0);
-  const filteredRows = rows.filter((row) => monthKey(row.occurredAt) === selectedMonth).sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
+  const currentRows = selectedMonth === "all" ? rows : rows.filter((row) => monthKey(row.occurredAt) === selectedMonth);
+  const displayIncome = currentRows.filter((row) => row.type === "INCOME").reduce((total, row) => total + row.amountCents, 0);
+  const displayExpense = currentRows.filter((row) => row.type === "EXPENSE").reduce((total, row) => total + row.amountCents, 0);
+  const filteredRows = (selectedMonth === "all" ? rows : rows.filter((row) => monthKey(row.occurredAt) === selectedMonth)).sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
 
   const reportMonths = months.map((month) => {
     const items = rows.filter((row) => monthKey(row.occurredAt) === month.key);
@@ -142,7 +152,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     return { ...month, income, expense, balance: income - expense };
   });
   const reportMaximum = Math.max(1, ...reportMonths.flatMap((month) => [month.income, month.expense]));
-  const categories = Object.entries(rows.filter((row) => monthKey(row.occurredAt) === selectedMonth && row.type === "EXPENSE").reduce<Record<string, number>>((result, row) => {
+  const categories = Object.entries(rows.filter((row) => (selectedMonth === "all" || monthKey(row.occurredAt) === selectedMonth) && row.type === "EXPENSE").reduce<Record<string, number>>((result, row) => {
     const category = row.category || "Sem categoria";
     result[category] = (result[category] || 0) + row.amountCents;
     return result;
@@ -234,9 +244,21 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
 
   return <>
     <div className="grid three finance-kpis">
-      <div className="card kpi finance-balance"><span>💰 Caixa atual</span><strong>{money(balance)}</strong><small>Saldo acumulado</small></div>
-      <div className="card kpi finance-income"><span>📈 Entradas no mês</span><strong>{money(currentIncome)}</strong><small>{months[0].label}</small></div>
-      <div className="card kpi finance-expense"><span>📉 Saídas no mês</span><strong>{money(currentExpense)}</strong><small>{months[0].label}</small></div>
+      <div className="card kpi finance-balance">
+        <span>💰 Caixa atual</span>
+        <strong>{money(balance)}</strong>
+        <small>Saldo acumulado em conta</small>
+      </div>
+      <div className="card kpi finance-income">
+        <span>📈 Entradas {selectedMonth === "all" ? "acumuladas" : "no período"}</span>
+        <strong>{money(displayIncome)}</strong>
+        <small>{selectedMonth === "all" ? "Total desde Abril/2026" : months.find(m => m.key === selectedMonth)?.label || "Mês selecionado"}</small>
+      </div>
+      <div className="card kpi finance-expense">
+        <span>📉 Saídas {selectedMonth === "all" ? "acumuladas" : "no período"}</span>
+        <strong>{money(displayExpense)}</strong>
+        <small>{selectedMonth === "all" ? "Total desde Abril/2026" : months.find(m => m.key === selectedMonth)?.label || "Mês selecionado"}</small>
+      </div>
     </div>
 
         <div className="flex-between-wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
@@ -374,8 +396,37 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     {view === "cash" && <>
 
       <section className="finance-history">
-        <div className="section-heading compact"><div><span className="eyebrow">Histórico</span><h2>Últimos 3 meses</h2></div><p>Escolha um mês para consultar os lançamentos.</p></div>
-        <div className="month-tabs" role="tablist" aria-label="Mês do histórico">{months.map((month) => <button type="button" role="tab" aria-selected={selectedMonth === month.key} onClick={() => setSelectedMonth(month.key)} key={month.key}>{month.label}</button>)}</div>
+        <div className="section-heading compact">
+          <div>
+            <span className="eyebrow">Histórico Completo</span>
+            <h2>Extrato de Lançamentos</h2>
+          </div>
+          <p>Consulte todos os lançamentos desde Abril de 2026 ou filtre por mês específico.</p>
+        </div>
+        <div className="month-tabs" role="tablist" aria-label="Mês do histórico">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedMonth === "all"}
+            onClick={() => setSelectedMonth("all")}
+          >
+            Todos os Meses ({rows.length})
+          </button>
+          {months.map((month) => {
+            const count = rows.filter((r) => monthKey(r.occurredAt) === month.key).length;
+            return (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={selectedMonth === month.key}
+                onClick={() => setSelectedMonth(month.key)}
+                key={month.key}
+              >
+                {month.label} ({count})
+              </button>
+            );
+          })}
+        </div>
         <div className="card table-card compact-table"><table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Comprovante</th>{canManage && <th>Ações</th>}</tr></thead><tbody>{filteredRows.map((row) => <tr key={row.id}>
           <td>{shortDate(row.occurredAt)}</td><td>{row.category || "—"}</td><td>
             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
