@@ -278,43 +278,19 @@ export function LocationsManager({ initialLocations }: { initialLocations: Locat
                 style={{ width: "100%", height: "100%", minHeight: "360px", border: 0, display: "block" }}
               />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                    (() => {
-                      if (viewingMap.mapUrl) {
-                        const m = viewingMap.mapUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || viewingMap.mapUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-                        if (m) return `${m[1]},${m[2]}`;
-                      }
-                      return viewingMap.query || `${viewingMap.title} Valentina João Pessoa`;
-                    })()
-                  )}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="pdm-btn-primary pdm-btn-compact"
-                >
-                  <ExternalLink size={14} />
-                  <span>Como Chegar (Rota)</span>
-                </a>
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                    (() => {
-                      if (viewingMap.mapUrl) {
-                        const m = viewingMap.mapUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || viewingMap.mapUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-                        if (m) return `${m[1]},${m[2]}`;
-                      }
-                      return viewingMap.query || `${viewingMap.title} Valentina João Pessoa`;
-                    })()
-                  )}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="pdm-btn-secondary pdm-btn-compact"
-                >
-                  <ExternalLink size={14} />
-                  <span>Ver Ponto no Google Maps</span>
-                </a>
-              </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+              <a
+                href={
+                  viewingMap.mapUrl?.trim() ||
+                  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${viewingMap.title}, Valentina, João Pessoa - PB`)}`
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="pdm-btn-primary pdm-btn-compact"
+              >
+                <ExternalLink size={14} />
+                <span>Abrir no Google Maps Oficial</span>
+              </a>
               <button
                 type="button"
                 className="pdm-btn-secondary pdm-btn-compact"

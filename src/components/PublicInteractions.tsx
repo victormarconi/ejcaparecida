@@ -158,9 +158,10 @@ export function LocationTabs({
   }
 
   const cleanTarget = mapTarget || `${location.title} Valentina João Pessoa`;
-  const directMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanTarget)}`;
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(cleanTarget)}`;
   const map = `https://www.google.com/maps?q=${encodeURIComponent(cleanTarget)}&z=18&output=embed`;
+  const directMapsUrl =
+    location.mapUrl?.trim() ||
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${location.title}, Valentina, João Pessoa - PB`)}`;
   return (
     <div className="locations">
       <div className="tabs location-tabs" role="tablist" aria-label="Escolha uma localização" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "18px" }}>
