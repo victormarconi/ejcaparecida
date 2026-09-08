@@ -5,9 +5,9 @@ import type { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 const COOKIE_NAME = "ejc_session";
-// Sessão padrão: 8 horas | Com "Lembrar de mim": 60 dias
+// Sessão normal: 8 horas | "Lembrar de mim": 30 dias
 export const DEFAULT_SESSION_SECONDS = 60 * 60 * 8;
-export const REMEMBER_SESSION_SECONDS = 60 * 60 * 24 * 60; // 60 dias
+export const REMEMBER_SESSION_SECONDS = 60 * 60 * 24 * 30; // 30 dias
 
 type SessionPayload = { userId: string; expiresAt: number; remember?: boolean };
 
@@ -25,7 +25,7 @@ function sign(payload: string) {
   return createHmac("sha256", secret()).update(payload).digest("base64url");
 }
 
-export function createSessionToken(userId: string, remember = true) {
+export function createSessionToken(userId: string, remember = false) {
   const maxAge = remember ? REMEMBER_SESSION_SECONDS : DEFAULT_SESSION_SECONDS;
   const payload = encode(JSON.stringify({ userId, expiresAt: Date.now() + maxAge * 1000, remember } satisfies SessionPayload));
   return `${payload}.${sign(payload)}`;
@@ -48,7 +48,7 @@ export function verifySessionToken(token?: string | null): SessionPayload | null
   }
 }
 
-export function setSessionCookie(response: NextResponse, userId: string, remember = true) {
+export function setSessionCookie(response: NextResponse, userId: string, remember = false) {
   const maxAge = remember ? REMEMBER_SESSION_SECONDS : DEFAULT_SESSION_SECONDS;
   response.cookies.set(COOKIE_NAME, createSessionToken(userId, remember), {
     httpOnly: true,
@@ -56,6 +56,16 @@ export function setSessionCookie(response: NextResponse, userId: string, remembe
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: maxAge,
+  });
+}
+
+export function clearSessionCookie(response: NextResponse) {
+  response.cookies.set(COOKIE_NAME, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
   });
 }
 
@@ -83,13 +93,3 @@ export async function requestUser(token?: string | null) {
 }
 
 export { COOKIE_NAME };
-
-export function clearSessionCookie(response: NextResponse) {
-  response.cookies.set(COOKIE_NAME, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
-}
