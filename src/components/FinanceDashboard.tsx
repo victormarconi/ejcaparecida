@@ -133,7 +133,8 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
   const [selectedPeriod, setSelectedPeriod] = useState<string>("recent3");
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyMonthFilter, setHistoryMonthFilter] = useState<string>("all");
-  const [reportMonth, setReportMonth] = useState<string>("all");
+  const [reportMonth, setReportMonth] = useState<string>(() => recentMonths[0]?.key || "");
+  const [reportCategoryTab, setReportCategoryTab] = useState<"EXPENSE" | "INCOME">("EXPENSE");
 
   const [view, setView] = useState<"cash" | "reports">("cash");
   const [form, setForm] = useState<FinanceForm>(() => emptyForm(referenceDate));
@@ -163,19 +164,35 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     return rows.filter((r) => monthKey(r.occurredAt) === historyMonthFilter).sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
   }, [rows, historyMonthFilter]);
 
-  const reportMonths = allMonths.map((month) => {
+  const reportMonths = recentMonths.map((month) => {
     const items = rows.filter((row) => monthKey(row.occurredAt) === month.key);
     const income = items.filter((row) => row.type === "INCOME").reduce((total, row) => total + row.amountCents, 0);
     const expense = items.filter((row) => row.type === "EXPENSE").reduce((total, row) => total + row.amountCents, 0);
     return { ...month, income, expense, balance: income - expense };
   });
   const reportMaximum = Math.max(1, ...reportMonths.flatMap((month) => [month.income, month.expense]));
-  const categories = Object.entries(rows.filter((row) => (reportMonth === "all" || monthKey(row.occurredAt) === reportMonth) && row.type === "EXPENSE").reduce<Record<string, number>>((result, row) => {
-    const category = row.category || "Sem categoria";
-    result[category] = (result[category] || 0) + row.amountCents;
-    return result;
-  }, {})).sort((left, right) => right[1] - left[1]);
-  const categoryMaximum = Math.max(1, ...categories.map(([, value]) => value));
+
+  const expenseCategories = Object.entries(
+    rows
+      .filter((row) => monthKey(row.occurredAt) === reportMonth && row.type === "EXPENSE")
+      .reduce<Record<string, number>>((result, row) => {
+        const category = row.category || "Sem categoria";
+        result[category] = (result[category] || 0) + row.amountCents;
+        return result;
+      }, {})
+  ).sort((left, right) => right[1] - left[1]);
+  const expenseCategoryMaximum = Math.max(1, ...expenseCategories.map(([, value]) => value));
+
+  const incomeCategories = Object.entries(
+    rows
+      .filter((row) => monthKey(row.occurredAt) === reportMonth && row.type === "INCOME")
+      .reduce<Record<string, number>>((result, row) => {
+        const category = row.category || "Sem categoria";
+        result[category] = (result[category] || 0) + row.amountCents;
+        return result;
+      }, {})
+  ).sort((left, right) => right[1] - left[1]);
+  const incomeCategoryMaximum = Math.max(1, ...incomeCategories.map(([, value]) => value));
 
   function clearForm() {
     setModalOpen(false);
@@ -489,10 +506,112 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     </>}
 
     {view === "reports" && <section className="finance-reports" role="tabpanel">
-      <div className="section-heading compact"><div><span className="eyebrow">Relatórios</span><h2>Comparativo financeiro</h2></div><p>Análise separada do lançamento e do histórico diário.</p></div>
+      <div className="section-heading compact">
+        <div>
+          <span className="eyebrow">Relatórios</span>
+          <h2>Comparativo Financeiro (Últimos 3 Meses)</h2>
+        </div>
+        <p>Análise de fluxo de caixa recente e detalhamento de receitas e despesas por categoria.</p>
+      </div>
       <div className="grid two reports-grid">
-        <article className="card"><h3>Entradas e saídas</h3><div className="report-bars">{reportMonths.map((month) => <div className="report-month" key={month.key}><strong>{month.label}</strong><div><span>Entradas</span><div className="bar-track"><i className="bar income" style={{ width: `${month.income / reportMaximum * 100}%` }} /></div><b>{money(month.income)}</b></div><div><span>Saídas</span><div className="bar-track"><i className="bar expense" style={{ width: `${month.expense / reportMaximum * 100}%` }} /></div><b>{money(month.expense)}</b></div><small>Resultado: <span className={month.balance >= 0 ? "positive-text" : "negative-text"}>{money(month.balance)}</span></small></div>)}</div></article>
-        <article className="card"><div className="report-card-heading"><h3>Saídas por categoria</h3><select aria-label="Mês das categorias" value={reportMonth} onChange={(event) => setReportMonth(event.target.value)}>{allMonths.map((month) => <option value={month.key} key={month.key}>{month.label}</option>)}</select></div><div className="category-report">{categories.map(([category, total]) => <div key={category}><span>{category}</span><div className="bar-track"><i className="bar expense" style={{ width: `${total / categoryMaximum * 100}%` }} /></div><strong>{money(total)}</strong></div>)}</div>{!categories.length && <div className="empty">Sem despesas categorizadas neste mês.</div>}</article>
+        <article className="card">
+          <h3 style={{ marginBottom: "16px" }}>Entradas e saídas (3 meses)</h3>
+          <div className="report-bars">
+            {reportMonths.map((month) => (
+              <div className="report-month" key={month.key}>
+                <strong>{month.label}</strong>
+                <div>
+                  <span>Entradas</span>
+                  <div className="bar-track">
+                    <i className="bar income" style={{ width: `${(month.income / reportMaximum) * 100}%` }} />
+                  </div>
+                  <b>{money(month.income)}</b>
+                </div>
+                <div>
+                  <span>Saídas</span>
+                  <div className="bar-track">
+                    <i className="bar expense" style={{ width: `${(month.expense / reportMaximum) * 100}%` }} />
+                  </div>
+                  <b>{money(month.expense)}</b>
+                </div>
+                <small>
+                  Resultado:{" "}
+                  <span className={month.balance >= 0 ? "positive-text" : "negative-text"}>
+                    {money(month.balance)}
+                  </span>
+                </small>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="card">
+          <div className="report-card-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
+            <h3 style={{ margin: 0 }}>Categorias do mês</h3>
+            <select
+              aria-label="Mês das categorias"
+              value={reportMonth}
+              onChange={(event) => setReportMonth(event.target.value)}
+              style={{ padding: "5px 10px", borderRadius: "8px", background: "var(--surface-soft)", color: "var(--text)", border: "1px solid var(--border)", fontSize: "0.82rem" }}
+            >
+              {recentMonths.map((month) => (
+                <option value={month.key} key={month.key}>
+                  {month.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Abas Saídas / Entradas */}
+          <div className="module-tabs" style={{ margin: "0 0 14px 0" }}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={reportCategoryTab === "EXPENSE"}
+              onClick={() => setReportCategoryTab("EXPENSE")}
+              style={{ fontSize: "0.80rem", padding: "4px 12px" }}
+            >
+              Saídas ({money(expenseCategories.reduce((acc, [, val]) => acc + val, 0))})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={reportCategoryTab === "INCOME"}
+              onClick={() => setReportCategoryTab("INCOME")}
+              style={{ fontSize: "0.80rem", padding: "4px 12px" }}
+            >
+              Entradas ({money(incomeCategories.reduce((acc, [, val]) => acc + val, 0))})
+            </button>
+          </div>
+
+          {reportCategoryTab === "EXPENSE" ? (
+            <div className="category-report">
+              {expenseCategories.map(([category, total]) => (
+                <div key={category}>
+                  <span>{category}</span>
+                  <div className="bar-track">
+                    <i className="bar expense" style={{ width: `${(total / expenseCategoryMaximum) * 100}%` }} />
+                  </div>
+                  <strong>{money(total)}</strong>
+                </div>
+              ))}
+              {!expenseCategories.length && <div className="empty">Sem despesas registradas neste mês.</div>}
+            </div>
+          ) : (
+            <div className="category-report">
+              {incomeCategories.map(([category, total]) => (
+                <div key={category}>
+                  <span>{category}</span>
+                  <div className="bar-track">
+                    <i className="bar income" style={{ width: `${(total / incomeCategoryMaximum) * 100}%` }} />
+                  </div>
+                  <strong>{money(total)}</strong>
+                </div>
+              ))}
+              {!incomeCategories.length && <div className="empty">Sem entradas registradas neste mês.</div>}
+            </div>
+          )}
+        </article>
       </div>
     </section>}
 
