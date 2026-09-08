@@ -75,7 +75,15 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
   const [description, setDescription] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
   const [bannerUploading, setBannerUploading] = useState(false);
-  const [expiresAt, setExpiresAt] = useState("");
+  const [hasDate, setHasDate] = useState(false);
+  const [expireDay, setExpireDay] = useState(30);
+  const [expireMonth, setExpireMonth] = useState(9);
+  const [expireYear, setExpireYear] = useState(2026);
+  const [expireTime, setExpireTime] = useState("23:59");
+
+  function daysInMonth(year: number, month: number) {
+    return new Date(year, month, 0).getDate();
+  }
   const [active, setActive] = useState(true);
   const [fields, setFields] = useState<DynamicFormField[]>([
     { id: "nome", label: "Nome Completo", type: "text", required: true },
@@ -100,7 +108,13 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
     setTitle("");
     setDescription("");
     setBannerUrl("");
-    setExpiresAt(""); // Default: no limit
+    setHasDate(false);
+    const now = new Date();
+    setExpireYear(now.getFullYear());
+    setExpireMonth(now.getMonth() + 1);
+    const maxD = daysInMonth(now.getFullYear(), now.getMonth() + 1);
+    setExpireDay(Math.min(now.getDate(), maxD));
+    setExpireTime("23:59");
     setActive(true);
     setFields([
       { id: "nome", label: "Nome Completo", type: "text", required: true },
@@ -115,7 +129,23 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
     setTitle(campaign.title);
     setDescription(campaign.description || "");
     setBannerUrl(campaign.bannerUrl || "");
-    setExpiresAt(campaign.expiresAt ? clampValidDate(new Date(campaign.expiresAt).toISOString().slice(0, 16)) : "");
+    if (campaign.expiresAt) {
+      const d = new Date(campaign.expiresAt);
+      setHasDate(true);
+      setExpireYear(d.getFullYear());
+      setExpireMonth(d.getMonth() + 1);
+      const maxD = daysInMonth(d.getFullYear(), d.getMonth() + 1);
+      setExpireDay(Math.min(d.getDate(), maxD));
+      const h = String(d.getHours()).padStart(2, "0");
+      const m = String(d.getMinutes()).padStart(2, "0");
+      setExpireTime(`${h}:${m}`);
+    } else {
+      setHasDate(false);
+      setExpireYear(2026);
+      setExpireMonth(9);
+      setExpireDay(30);
+      setExpireTime("23:59");
+    }
     setActive(campaign.active);
     setFields(parseFields(campaign.fieldsJson));
     setError("");
@@ -260,13 +290,23 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
     setError("");
 
     try {
+      let finalExpiresAt: string | null = null;
+      if (hasDate) {
+        const maxD = daysInMonth(expireYear, expireMonth);
+        const safeDay = Math.min(expireDay, maxD);
+        const dStr = String(safeDay).padStart(2, "0");
+        const mStr = String(expireMonth).padStart(2, "0");
+        const tStr = expireTime || "23:59";
+        finalExpiresAt = new Date(`${expireYear}-${mStr}-${dStr}T${tStr}:00`).toISOString();
+      }
+
       const payload = {
         id: editingId || undefined,
         title: title.trim(),
         description: description.trim() || null,
         bannerUrl: bannerUrl.trim() || null,
         active,
-        expiresAt: expiresAt ? new Date(clampValidDate(expiresAt)).toISOString() : null,
+        expiresAt: finalExpiresAt,
         fields,
       };
 
@@ -551,31 +591,109 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
 
           {/* VALIDADE E BANNER ALINHADOS */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px", alignItems: "start" }}>
-            {/* DATA DE TÉRMINO */}
+            {/* DATA DE TÉRMINO / VALIDADE */}
             <div className="field" style={{ margin: 0 }}>
-              <span style={{ display: "block", marginBottom: "6px", fontSize: "0.84rem", fontWeight: 600, color: "#cbd5e1" }}>
-                Data de Término / Validade
-              </span>
-              <div style={{ display: "flex", gap: "6px", alignItems: "center", height: "40px" }}>
-                <input
-                  type="datetime-local"
-                  value={expiresAt}
-                  onChange={(e) => setExpiresAt(clampValidDate(e.target.value))}
-                  onBlur={() => setExpiresAt(clampValidDate(expiresAt))}
-                  style={{ flex: 1, height: "40px", boxSizing: "border-box" }}
-                />
-                {expiresAt && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                <span style={{ fontSize: "0.84rem", fontWeight: 600, color: "#cbd5e1" }}>
+                  Data de Término / Validade
+                </span>
+                {hasDate ? (
                   <button
                     type="button"
-                    onClick={() => setExpiresAt("")}
-                    className="pdm-btn-secondary"
-                    style={{ height: "40px", padding: "0 12px", color: "#f87171", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                    title="Remover data limite"
+                    onClick={() => setHasDate(false)}
+                    className="pdm-btn-secondary pdm-btn-small"
+                    style={{ fontSize: "0.72rem", padding: "1px 6px", color: "#f87171" }}
+                    title="Deixar formulário aberto sem data limite"
                   >
-                    <X size={15} />
+                    ✕ Sem Limite
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setHasDate(true)}
+                    className="pdm-btn-secondary pdm-btn-small"
+                    style={{ fontSize: "0.72rem", padding: "1px 6px", color: "#38bdf8" }}
+                  >
+                    + Definir Prazo
                   </button>
                 )}
               </div>
+
+              {hasDate ? (
+                <div style={{ display: "flex", gap: "6px", alignItems: "center", height: "40px" }}>
+                  {/* DIA (Limitado estritamente aos dias reais do mês selecionado) */}
+                  <select
+                    value={expireDay}
+                    onChange={(e) => setExpireDay(parseInt(e.target.value, 10))}
+                    style={{ width: "65px", height: "40px", background: "#060910", border: "1px solid rgba(255, 255, 255, 0.14)", borderRadius: "8px", color: "#ffffff", padding: "0 6px", fontSize: "0.85rem", boxSizing: "border-box" }}
+                  >
+                    {Array.from({ length: daysInMonth(expireYear, expireMonth) }, (_, i) => i + 1).map((d) => (
+                      <option key={d} value={d}>{String(d).padStart(2, "0")}</option>
+                    ))}
+                  </select>
+
+                  {/* MÊS */}
+                  <select
+                    value={expireMonth}
+                    onChange={(e) => {
+                      const newM = parseInt(e.target.value, 10);
+                      setExpireMonth(newM);
+                      const maxD = daysInMonth(expireYear, newM);
+                      if (expireDay > maxD) setExpireDay(maxD);
+                    }}
+                    style={{ flex: 1, height: "40px", background: "#060910", border: "1px solid rgba(255, 255, 255, 0.14)", borderRadius: "8px", color: "#ffffff", padding: "0 8px", fontSize: "0.85rem", boxSizing: "border-box" }}
+                  >
+                    <option value={1}>Janeiro</option>
+                    <option value={2}>Fevereiro</option>
+                    <option value={3}>Março</option>
+                    <option value={4}>Abril</option>
+                    <option value={5}>Maio</option>
+                    <option value={6}>Junho</option>
+                    <option value={7}>Julho</option>
+                    <option value={8}>Agosto</option>
+                    <option value={9}>Setembro (30d)</option>
+                    <option value={10}>Outubro (31d)</option>
+                    <option value={11}>Novembro (30d)</option>
+                    <option value={12}>Dezembro (31d)</option>
+                  </select>
+
+                  {/* ANO */}
+                  <select
+                    value={expireYear}
+                    onChange={(e) => setExpireYear(parseInt(e.target.value, 10))}
+                    style={{ width: "80px", height: "40px", background: "#060910", border: "1px solid rgba(255, 255, 255, 0.14)", borderRadius: "8px", color: "#ffffff", padding: "0 6px", fontSize: "0.85rem", boxSizing: "border-box" }}
+                  >
+                    <option value={2026}>2026</option>
+                    <option value={2027}>2027</option>
+                    <option value={2028}>2028</option>
+                  </select>
+
+                  {/* HORA */}
+                  <input
+                    type="time"
+                    value={expireTime}
+                    onChange={(e) => setExpireTime(e.target.value)}
+                    style={{ width: "80px", height: "40px", background: "#060910", border: "1px solid rgba(255, 255, 255, 0.14)", borderRadius: "8px", color: "#ffffff", padding: "0 6px", fontSize: "0.85rem", boxSizing: "border-box" }}
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    height: "40px",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "0 12px",
+                    background: "#090e17",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "8px",
+                    color: "#64748b",
+                    fontSize: "0.82rem",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  Sem data limite (formulário contínuo)
+                </div>
+              )}
             </div>
 
             {/* UPLOAD DE BANNER */}
