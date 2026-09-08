@@ -30,12 +30,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/login?erro=1&callbackUrl=${encodeURIComponent(errCallback)}`, 303);
   }
 
-  // Regra exclusiva: se marcou "Lembrar de mim", vai direto para o financeiro (/admin/financas)!
-  // Se não marcou ou veio com callback específico, respeita o fluxo normal
+  // Redirecionamento padrão: Visão Geral (/admin) para admins
   let target = "/membros";
-  if (remember && user.role === "ADMIN") {
-    target = "/admin/financas";
-  } else if (callbackUrl.startsWith("/")) {
+  if (callbackUrl.startsWith("/") && callbackUrl !== "/login") {
     target = callbackUrl;
   } else if (user.role === "ADMIN") {
     target = "/admin";
