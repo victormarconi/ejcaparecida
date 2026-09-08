@@ -19,7 +19,7 @@ const data = (value: z.infer<typeof schema>) => ({
   ...value,
   description: clean(value.description),
   category: clean(value.category),
-  receiptUrl: value.type === "EXPENSE" ? clean(value.receiptUrl) : null,
+  receiptUrl: clean(value.receiptUrl),
   occurredAt: new Date(value.occurredAt),
 });
 
@@ -57,8 +57,34 @@ export async function PUT(request: NextRequest) {
 
   const raw = await requestData(request);
   const id = z.string().min(1).parse(raw.id);
-  const item = await prisma.financeEntry.update({ where: { id }, data: data(schema.parse(raw)) });
-  await recordActivity(auth.user, "finance", id, "UPDATED", { title: item.title, type: item.type });
+  const existing = await prisma.financeEntry.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Lançamento não encontrado." }, { status: 404 });
+
+  const parsed = schema.parse(raw);
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const auditNote = `[Editado em ${dateStr} às ${timeStr}]`;
+
+  let desc = clean(parsed.description);
+  if (desc) {
+    desc = `${desc.replace(/\s*•\s*\[Editado em[^\]]+\]/g, "").trim()} • ${auditNote}`;
+  } else {
+    desc = auditNote;
+  }
+
+  const payload = {
+    ...data(parsed),
+    description: desc,
+  };
+
+  const item = await prisma.financeEntry.update({ where: { id }, data: payload });
+  await recordActivity(auth.user, "finance", id, "UPDATED", {
+    title: item.title,
+    type: item.type,
+    amountCents: item.amountCents,
+    previous: { title: existing.title, amountCents: existing.amountCents },
+  });
   return routeResponse(request, { item }, 200, "/admin/financas");
 }
 

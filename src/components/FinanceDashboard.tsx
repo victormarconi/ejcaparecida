@@ -14,6 +14,8 @@ export type FinanceRow = {
   occurredAt: string;
   category: string | null;
   receiptUrl: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type FinanceForm = {
@@ -63,6 +65,53 @@ async function responseBody<T>(response: Response): Promise<T> {
   const body = await response.json().catch(() => ({})) as T & { error?: string };
   if (!response.ok) throw new Error(body.error || "Não foi possível concluir a operação.");
   return body;
+}
+
+
+async function compressImageFile(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 1280;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          }
+        } else {
+          if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else resolve(file);
+          },
+          "image/jpeg",
+          0.82
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
 }
 
 export function FinanceDashboard({ initialRows, referenceDate, canManage = false }: { initialRows: FinanceRow[]; referenceDate: string; canManage?: boolean }) {
@@ -123,10 +172,11 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     try {
       const normalizedAmount = Number(form.amount.replace(",", "."));
       if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) throw new Error("Informe um valor maior que zero.");
-      let receiptUrl = form.type === "EXPENSE" ? form.receiptUrl || null : null;
-      if (form.type === "EXPENSE" && receipt) {
+      let receiptUrl = form.receiptUrl || null;
+      if (receipt) {
+        const compressed = await compressImageFile(receipt);
         const upload = new FormData();
-        upload.set("file", receipt);
+        upload.set("file", compressed, "comprovante.jpg");
         upload.set("kind", "receipt");
         const uploaded = await responseBody<{ url: string }>(await fetch("/api/admin/uploads", { method: "POST", body: upload }));
         receiptUrl = uploaded.url;
@@ -283,25 +333,30 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
               onChange={(event) => setForm({ ...form, description: event.target.value })}
             />
           </label>
-          {form.type === "EXPENSE" && (
-            <label className="field receipt-input">
-              Foto da nota/recibo
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(event) => chooseReceipt(event.target.files?.[0] || null)}
-              />
-            </label>
-          )}
+          <label className="field receipt-input">
+            Foto / Comprovante (opcional)
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => chooseReceipt(event.target.files?.[0] || null)}
+            />
+          </label>
         </div>
         {formPreview && (
-          <div className="receipt-preview">
-            <img src={formPreview} alt="Comprovante selecionado" />
-            {receipt && (
-              <button className="button secondary small" type="button" onClick={() => chooseReceipt(null)}>
-                Remover foto
-              </button>
-            )}
+          <div className="receipt-preview" style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px" }}>
+            <img src={formPreview} alt="Comprovante" style={{ width: "64px", height: "64px", objectFit: "cover", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.2)" }} />
+            <button
+              className="pdm-btn-danger pdm-btn-small"
+              type="button"
+              onClick={() => {
+                if (formPreview?.startsWith("blob:")) URL.revokeObjectURL(formPreview);
+                setReceipt(null);
+                setFormPreview(null);
+                setForm({ ...form, receiptUrl: "" });
+              }}
+            >
+              Remover foto
+            </button>
           </div>
         )}
         {error && <p className="error" role="alert">{error}</p>}
@@ -322,7 +377,30 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
         <div className="section-heading compact"><div><span className="eyebrow">Histórico</span><h2>Últimos 3 meses</h2></div><p>Escolha um mês para consultar os lançamentos.</p></div>
         <div className="month-tabs" role="tablist" aria-label="Mês do histórico">{months.map((month) => <button type="button" role="tab" aria-selected={selectedMonth === month.key} onClick={() => setSelectedMonth(month.key)} key={month.key}>{month.label}</button>)}</div>
         <div className="card table-card compact-table"><table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Comprovante</th>{canManage && <th>Ações</th>}</tr></thead><tbody>{filteredRows.map((row) => <tr key={row.id}>
-          <td>{shortDate(row.occurredAt)}</td><td>{row.category || "—"}</td><td><strong>{row.title}</strong>{row.description && <small>{row.description}</small>}</td><td><span className={`finance-value ${row.type === "INCOME" ? "positive" : "negative"}`}>{row.type === "INCOME" ? "+" : "−"}{money(row.amountCents)}</span></td>
+          <td>{shortDate(row.occurredAt)}</td><td>{row.category || "—"}</td><td>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <strong>{row.title}</strong>
+                {(row.description?.includes("[Editado em") ||
+                  (row.updatedAt && row.createdAt && new Date(row.updatedAt).getTime() - new Date(row.createdAt).getTime() > 2000)) && (
+                  <span
+                    className="pdm-badge"
+                    style={{
+                      fontSize: "0.68rem",
+                      background: "rgba(234, 179, 8, 0.12)",
+                      color: "#facc15",
+                      border: "1px solid rgba(234, 179, 8, 0.25)",
+                      padding: "1px 5px",
+                    }}
+                    title={row.description?.match(/\[Editado em [^\]]+\]/)?.[0] || "Lançamento editado"}
+                  >
+                    ✏️ Editado
+                  </span>
+                )}
+              </div>
+              {row.description && <small style={{ color: "#94a3b8" }}>{row.description}</small>}
+            </div>
+          </td><td><span className={`finance-value ${row.type === "INCOME" ? "positive" : "negative"}`}>{row.type === "INCOME" ? "+" : "−"}{money(row.amountCents)}</span></td>
           <td>{row.receiptUrl ? <button className="receipt-thumb" type="button" onClick={() => setModalReceipt(row.receiptUrl)} aria-label={`Abrir comprovante de ${row.title}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={row.receiptUrl} alt="" />
