@@ -1,0 +1,685 @@
+"use client";
+
+import { useState } from "react";
+import { Plus, Edit2, Trash2, Calendar as CalendarIcon, Clock, MapPin, ChevronLeft, ChevronRight, FileText, Globe, Lock } from "lucide-react";
+import { PdmModal, PdmConfirmModal } from "@/components/PdmModal";
+
+export type EventItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  visibility: "PUBLIC" | "MEMBERS";
+  createdAt: string;
+  updatedAt: string;
+};
+
+function formatTime(iso: string) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "--:--";
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "Data inválida";
+  return d.toLocaleDateString("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function toLocalInput(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  // format YYYY-MM-DDTHH:mm
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hours = String(d.getHours()).padStart(2, "0");
+  const mins = String(d.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${mins}`;
+}
+
+export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] }) {
+  const [events, setEvents] = useState<EventItem[]>(initialEvents);
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+
+  // Current month reference
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  // Modal create/edit
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+
+  // Form fields
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
+  const [visibility, setVisibility] = useState<"PUBLIC" | "MEMBERS">("PUBLIC");
+
+  // Delete modal
+  const [deletingEvent, setDeletingEvent] = useState<EventItem | null>(null);
+
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  function openCreate(prefillDate?: string) {
+    setEditingEvent(null);
+    setTitle("");
+    setDescription("");
+    setLocation("");
+    if (prefillDate) {
+      setStartsAt(`${prefillDate}T19:00`);
+      setEndsAt(`${prefillDate}T21:00`);
+    } else {
+      const now = new Date();
+      setStartsAt(toLocalInput(now.toISOString()));
+      const later = new Date(now.getTime() + 2 * 3600000);
+      setEndsAt(toLocalInput(later.toISOString()));
+    }
+    setVisibility("PUBLIC");
+    setError("");
+    setModalOpen(true);
+  }
+
+  function openEdit(event: EventItem) {
+    setEditingEvent(event);
+    setTitle(event.title);
+    setDescription(event.description || "");
+    setLocation(event.location || "");
+    setStartsAt(toLocalInput(event.startsAt));
+    setEndsAt(toLocalInput(event.endsAt));
+    setVisibility(event.visibility);
+    setError("");
+    setModalOpen(true);
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+
+    try {
+      const payload = {
+        title: title.trim(),
+        description: description.trim() || null,
+        location: location.trim() || null,
+        startsAt: new Date(startsAt).toISOString(),
+        endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+        visibility,
+      };
+
+      const url = "/api/admin/calendario";
+      const method = editingEvent ? "PUT" : "POST";
+      const body = editingEvent
+        ? JSON.stringify({ ...payload, id: editingEvent.id })
+        : JSON.stringify(payload);
+
+      const res = await fetch(url, {
+        method,
+        headers: { "content-type": "application/json" },
+        body,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao salvar evento");
+
+      if (editingEvent) {
+        setEvents((prev) =>
+          prev.map((ev) => (ev.id === editingEvent.id ? { ...ev, ...data.item } : ev))
+        );
+      } else {
+        setEvents((prev) => [data.item, ...prev]);
+      }
+
+      setModalOpen(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Falha ao salvar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deletingEvent) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/calendario", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: deletingEvent.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao excluir evento");
+
+      setEvents((prev) => prev.filter((ev) => ev.id !== deletingEvent.id));
+      setDeletingEvent(null);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Erro ao excluir evento");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Calendar Grid calculations
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+
+  const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const monthLabel = currentMonth.toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
+
+  function prevMonth() {
+    setCurrentMonth(new Date(year, month - 1, 1));
+  }
+
+  function nextMonth() {
+    setCurrentMonth(new Date(year, month + 1, 1));
+  }
+
+  return (
+    <div>
+      {/* CABEÇALHO PADRÃO PDM1 */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "14px",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <h2 style={{ margin: 0, fontSize: "1.35rem", fontWeight: 700, color: "#fff" }}>
+            Calendário Paroquial
+          </h2>
+          <p style={{ margin: "4px 0 0", fontSize: "0.86rem", color: "#94a3b8" }}>
+            Visualize os dias de compromissos, reuniões e eventos com horários formatados.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {/* Alternador de Visão */}
+          <div className="module-tabs" style={{ margin: 0 }}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "calendar"}
+              onClick={() => setViewMode("calendar")}
+            >
+              Grade de Dias
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "list"}
+              onClick={() => setViewMode("list")}
+            >
+              Lista ({events.length})
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="pdm-btn-primary pdm-btn-compact"
+            onClick={() => openCreate()}
+          >
+            <Plus size={16} />
+            <span>Novo Evento</span>
+          </button>
+        </div>
+      </div>
+
+      {/* VISÃO EM GRADE DE CALENDÁRIO */}
+      {viewMode === "calendar" && (
+        <div className="card" style={{ padding: "20px", borderRadius: "16px", background: "var(--surface)" }}>
+          {/* Navegação de Mês */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "18px",
+            }}
+          >
+            <h3 style={{ margin: 0, textTransform: "capitalize", fontSize: "1.15rem", color: "#fff", fontWeight: 700 }}>
+              {monthLabel}
+            </h3>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button
+                type="button"
+                className="pdm-btn-secondary pdm-btn-small"
+                onClick={prevMonth}
+                title="Mês anterior"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                className="pdm-btn-secondary pdm-btn-small"
+                onClick={nextMonth}
+                title="Próximo mês"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Cabeçalho dos dias da semana */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7, 1fr)",
+              gap: "6px",
+              textAlign: "center",
+              marginBottom: "6px",
+            }}
+          >
+            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
+              <div
+                key={d}
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 700,
+                  color: "#94a3b8",
+                  padding: "6px 0",
+                  textTransform: "uppercase",
+                }}
+              >
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Células dos dias */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7, 1fr)",
+              gap: "6px",
+            }}
+          >
+            {/* Espaços vazios antes do 1º dia */}
+            {Array.from({ length: firstDayIndex }).map((_, i) => (
+              <div
+                key={`empty-${i}`}
+                style={{
+                  minHeight: "85px",
+                  background: "rgba(255, 255, 255, 0.01)",
+                  borderRadius: "8px",
+                  opacity: 0.3,
+                }}
+              />
+            ))}
+
+            {/* Dias do Mês */}
+            {Array.from({ length: daysInMonth }).map((_, idx) => {
+              const dayNum = idx + 1;
+              const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+
+              // Filtrar eventos deste dia
+              const dayEvents = events.filter((ev) => {
+                const evDate = new Date(ev.startsAt);
+                return (
+                  evDate.getFullYear() === year &&
+                  evDate.getMonth() === month &&
+                  evDate.getDate() === dayNum
+                );
+              });
+
+              const isToday =
+                new Date().getFullYear() === year &&
+                new Date().getMonth() === month &&
+                new Date().getDate() === dayNum;
+
+              return (
+                <div
+                  key={dayNum}
+                  style={{
+                    minHeight: "92px",
+                    background: isToday ? "rgba(2, 132, 199, 0.08)" : "rgba(255, 255, 255, 0.03)",
+                    border: isToday
+                      ? "1px solid #0284c7"
+                      : "1px solid rgba(255, 255, 255, 0.06)",
+                    borderRadius: "10px",
+                    padding: "6px 8px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                  onClick={() => openCreate(dateStr)}
+                  title="Clique para adicionar evento neste dia"
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "0.82rem",
+                        fontWeight: 700,
+                        color: isToday ? "#38bdf8" : "#cbd5e1",
+                      }}
+                    >
+                      {dayNum}
+                    </span>
+                    {dayEvents.length > 0 && (
+                      <span
+                        style={{
+                          fontSize: "0.70rem",
+                          background: "var(--brand)",
+                          color: "#fff",
+                          borderRadius: "999px",
+                          padding: "1px 6px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {dayEvents.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Pills de Eventos */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "3px", overflowY: "auto", maxHeight: "65px" }}>
+                    {dayEvents.map((ev) => (
+                      <div
+                        key={ev.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(ev);
+                        }}
+                        style={{
+                          fontSize: "0.72rem",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          background:
+                            ev.visibility === "PUBLIC"
+                              ? "rgba(14, 165, 233, 0.2)"
+                              : "rgba(168, 85, 247, 0.2)",
+                          color: ev.visibility === "PUBLIC" ? "#38bdf8" : "#c084fc",
+                          border:
+                            ev.visibility === "PUBLIC"
+                              ? "1px solid rgba(14, 165, 233, 0.3)"
+                              : "1px solid rgba(168, 85, 247, 0.3)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          lineHeight: 1.2,
+                        }}
+                        title={`${formatTime(ev.startsAt)} - ${ev.title}`}
+                      >
+                        <strong>{formatTime(ev.startsAt)}</strong> {ev.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* VISÃO EM LISTA */}
+      {viewMode === "list" && (
+        events.length === 0 ? (
+          <div
+            className="card"
+            style={{
+              padding: "48px 24px",
+              textAlign: "center",
+              background: "var(--surface)",
+              borderRadius: "16px",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+            }}
+          >
+            <CalendarIcon size={42} style={{ color: "#64748b", margin: "0 auto 12px" }} />
+            <h3 style={{ margin: "0 0 6px", color: "#fff", fontSize: "1.1rem" }}>
+              Nenhum evento agendado
+            </h3>
+            <p style={{ margin: "0 0 16px", color: "#94a3b8", fontSize: "0.88rem" }}>
+              Cadastre missas, encontros, reuniões de equipes ou eventos públicos.
+            </p>
+            <button
+              type="button"
+              className="pdm-btn-primary pdm-btn-compact"
+              onClick={() => openCreate()}
+            >
+              <Plus size={15} />
+              <span>Agendar Primeiro Evento</span>
+            </button>
+          </div>
+        ) : (
+          <div className="card table-card compact-table" style={{ borderRadius: "14px" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Evento</th>
+                  <th>Data & Horário</th>
+                  <th>Local</th>
+                  <th>Visibilidade</th>
+                  <th style={{ textAlign: "right" }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((ev) => (
+                  <tr key={ev.id}>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <strong style={{ color: "#f8fafc", fontSize: "0.92rem" }}>
+                          {ev.title}
+                        </strong>
+                        {ev.description && (
+                          <small style={{ color: "#94a3b8", fontSize: "0.78rem" }}>
+                            {ev.description.slice(0, 65)}
+                            {ev.description.length > 65 ? "..." : ""}
+                          </small>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: "0.82rem", color: "#cbd5e1" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                          <CalendarIcon size={12} style={{ color: "#38bdf8" }} />
+                          <strong>{formatDate(ev.startsAt)}</strong>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "5px", color: "#94a3b8", fontSize: "0.78rem", marginTop: "2px" }}>
+                          <Clock size={12} />
+                          <span>
+                            {formatTime(ev.startsAt)}
+                            {ev.endsAt && ` até ${formatTime(ev.endsAt)}`}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      {ev.location ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", color: "#cbd5e1" }}>
+                          <MapPin size={13} style={{ color: "#f87171" }} />
+                          <span>{ev.location}</span>
+                        </div>
+                      ) : (
+                        <span style={{ color: "#64748b" }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        className="pdm-badge"
+                        style={{
+                          background:
+                            ev.visibility === "PUBLIC"
+                              ? "rgba(14, 165, 233, 0.12)"
+                              : "rgba(168, 85, 247, 0.12)",
+                          color: ev.visibility === "PUBLIC" ? "#38bdf8" : "#c084fc",
+                          borderColor:
+                            ev.visibility === "PUBLIC"
+                              ? "rgba(14, 165, 233, 0.25)"
+                              : "rgba(168, 85, 247, 0.25)",
+                        }}
+                      >
+                        {ev.visibility === "PUBLIC" ? (
+                          <>
+                            <Globe size={11} /> Público
+                          </>
+                        ) : (
+                          <>
+                            <Lock size={11} /> Apenas Membros
+                          </>
+                        )}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <button
+                          type="button"
+                          className="table-action-btn edit"
+                          onClick={() => openEdit(ev)}
+                          title="Editar evento"
+                        >
+                          <Edit2 size={13} />
+                          <span>Editar</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="table-action-btn delete"
+                          onClick={() => setDeletingEvent(ev)}
+                          title="Excluir evento"
+                        >
+                          <Trash2 size={13} />
+                          <span>Excluir</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {/* MODAL PADRÃO PDM1 DE CRIAR / EDITAR EVENTO */}
+      <PdmModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingEvent ? "Editar Evento" : "Novo Evento"}
+        subtitle="Agende compromissos pastorais com início, término e local."
+        maxWidth="600px"
+      >
+        <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <label className="field">
+            Título do Evento *
+            <input
+              required
+              maxLength={160}
+              placeholder="Ex: Missa de Entrega, Reunião de Equipe, Gincana"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </label>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <label className="field">
+              Início (Data & Hora) *
+              <input
+                type="datetime-local"
+                required
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              Término Previsto
+              <input
+                type="datetime-local"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: "12px" }}>
+            <label className="field">
+              Local do Evento
+              <input
+                placeholder="Ex: Salão Paroquial / Igreja Matriz"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              Visibilidade *
+              <select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as "PUBLIC" | "MEMBERS")}
+              >
+                <option value="PUBLIC">Público (Visível no site)</option>
+                <option value="MEMBERS">Apenas Membros Internos</option>
+              </select>
+            </label>
+          </div>
+
+          <label className="field">
+            Descrição / Pauta
+            <textarea
+              rows={3}
+              placeholder="Informações adicionais sobre o encontro..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </label>
+
+          {error && <p className="error" role="alert">{error}</p>}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+            <button
+              type="button"
+              className="pdm-btn-secondary pdm-btn-compact"
+              onClick={() => setModalOpen(false)}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="pdm-btn-primary pdm-btn-compact"
+              disabled={busy}
+            >
+              {busy ? "Salvando..." : editingEvent ? "Salvar Alterações" : "Agendar Evento"}
+            </button>
+          </div>
+        </form>
+      </PdmModal>
+
+      {/* CONFIRMAÇÃO DE EXCLUSÃO */}
+      <PdmConfirmModal
+        open={Boolean(deletingEvent)}
+        onClose={() => setDeletingEvent(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Excluir Evento"
+        message={`Tem certeza que deseja cancelar e excluir o evento "${deletingEvent?.title}"?`}
+        confirmLabel="Sim, excluir"
+        busy={busy}
+      />
+    </div>
+  );
+}

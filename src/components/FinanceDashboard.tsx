@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { money, shortDate } from "@/lib/format";
-import { FinanceModal } from "@/components/FinanceModal";
+import { PdmModal, PdmConfirmModal } from "@/components/PdmModal";
 import { Plus } from "lucide-react";
 
 export type FinanceRow = {
@@ -73,6 +73,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
   const [form, setForm] = useState<FinanceForm>(() => emptyForm(referenceDate));
   const [editing, setEditing] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [deletingRow, setDeletingRow] = useState<FinanceRow | null>(null);
   const [receipt, setReceipt] = useState<File | null>(null);
   const [formPreview, setFormPreview] = useState<string | null>(null);
   const [modalReceipt, setModalReceipt] = useState<string | null>(null);
@@ -196,7 +197,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       {canManage && view === "cash" && (
         <button
           type="button"
-          className="button"
+          className="pdm-btn-primary pdm-btn-compact"
           onClick={() => {
             clearForm();
             setModalOpen(true);
@@ -210,7 +211,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     </div>
 
     {/* MODAL PADRONIZADO PDM1 PARA NOVO/EDITAR LANÇAMENTO */}
-    <FinanceModal
+    <PdmModal
       open={modalOpen}
       onClose={clearForm}
       title={editing ? "Editar Lançamento" : "Novo Lançamento Financeiro"}
@@ -313,7 +314,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
           </button>
         </div>
       </form>
-    </FinanceModal>
+    </PdmModal>
 
     {view === "cash" && <>
 
@@ -343,5 +344,20 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={modalReceipt} alt="Comprovante fiscal ampliado" />
     </div></div>}
+
+    {/* CONFIRMAÇÃO DE EXCLUSÃO PADRÃO PDM1 */}
+    <PdmConfirmModal
+      open={Boolean(deletingRow)}
+      onClose={() => setDeletingRow(null)}
+      onConfirm={async () => {
+        if (!deletingRow) return;
+        await remove(deletingRow);
+        setDeletingRow(null);
+      }}
+      title="Excluir Lançamento"
+      message={`Tem certeza que deseja excluir o lançamento "${deletingRow?.title}"?`}
+      confirmLabel="Sim, excluir"
+      busy={busy}
+    />
   </>;
 }

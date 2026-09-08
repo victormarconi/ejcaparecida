@@ -14,7 +14,15 @@ const itemSchema = z.object({
 });
 
 const clean = (value?: string | null) => value?.trim() || null;
-const itemData = (value: z.infer<typeof itemSchema>) => ({ ...value, description: clean(value.description), photoUrl: clean(value.photoUrl) });
+const itemData = (value: z.infer<typeof itemSchema>) => ({
+  name: value.name,
+  notes: clean(value.description),
+  totalQuantity: value.quantity,
+  availableQuantity: value.quantity,
+  condition: value.condition,
+  photoUrl: clean(value.photoUrl),
+  active: value.active,
+});
 
 function invalid(reason: unknown) {
   if (reason instanceof z.ZodError) return NextResponse.json({ error: reason.issues[0]?.message || "Dados inválidos." }, { status: 400 });

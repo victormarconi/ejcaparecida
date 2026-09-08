@@ -1,10 +1,11 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
-import { FORM_FIELD_TYPES, parseFormFields, type DynamicFormField } from "@/lib/forms";
+import { Plus, Edit2, Trash2, Eye, Download, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { PdmModal, PdmConfirmModal } from "@/components/PdmModal";
+import { DynamicFormField } from "@/lib/forms";
 
-type Campaign = {
+export type AdminFormCampaign = {
   id: string;
   title: string;
   description: string | null;
@@ -17,175 +18,656 @@ type Campaign = {
   _count: { submissions: number };
 };
 
-type CampaignFormState = {
-  title: string;
-  description: string;
-  bannerUrl: string;
-  active: boolean;
-  expiresAt: string;
-  fields: DynamicFormField[];
+type Submission = {
+  id: string;
+  createdAt: string;
+  data: Record<string, unknown>;
 };
 
-type Submission = { id: string; createdAt: string; data: Record<string, unknown> };
-type ResponseView = { campaign: { id: string; title: string; fields: DynamicFormField[] }; items: Submission[] };
-
-const typeLabels: Record<(typeof FORM_FIELD_TYPES)[number], string> = { text: "Texto", number: "Número", select: "Lista de opções", checkbox: "Caixa de seleção" };
-const emptyForm: CampaignFormState = { title: "", description: "", bannerUrl: "", active: true, expiresAt: "", fields: [] };
-
-function inputDate(value: string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
+function formatDate(iso?: string | null) {
+  if (!iso) return "Sem data limite";
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return "Data inválida";
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function displayDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+function parseFields(json: string): DynamicFormField[] {
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
-function responseValue(value: unknown) {
-  if (value === true) return "Sim";
-  if (value === false) return "Não";
-  if (value === null || value === undefined || value === "") return "—";
-  return String(value);
-}
+export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminFormCampaign[] }) {
+  const [campaigns, setCampaigns] = useState<AdminFormCampaign[]>(initialCampaigns);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-async function responseBody<T>(response: Response): Promise<T> {
-  const body = await response.json().catch(() => ({})) as T & { error?: string };
-  if (!response.ok) throw new Error(body.error || "Não foi possível concluir a operação.");
-  return body;
-}
+  // Form state
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [active, setActive] = useState(true);
+  const [fields, setFields] = useState<DynamicFormField[]>([
+    { id: "nome", label: "Nome Completo", type: "text", required: true },
+    { id: "whatsapp", label: "WhatsApp / Telefone", type: "text", required: true },
+  ]);
 
-function newField(): DynamicFormField {
-  return { id: crypto.randomUUID(), label: "", type: "text", required: false };
-}
+  // Respostas modal
+  const [viewResponsesCampaign, setViewResponsesCampaign] = useState<AdminFormCampaign | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
 
-export function FormsManager({ initialCampaigns }: { initialCampaigns: Campaign[] }) {
-  const [campaigns, setCampaigns] = useState(initialCampaigns);
-  const [form, setForm] = useState<CampaignFormState>(emptyForm);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [view, setView] = useState<"campaigns" | "responses">("campaigns");
-  const [responses, setResponses] = useState<ResponseView | null>(null);
-  const [banner, setBanner] = useState<File | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  // Delete modal
+  const [deletingCampaign, setDeletingCampaign] = useState<AdminFormCampaign | null>(null);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  function clearForm() {
-    if (bannerPreview?.startsWith("blob:")) URL.revokeObjectURL(bannerPreview);
-    setForm(emptyForm);
-    setEditing(null);
-    setBanner(null);
-    setBannerPreview(null);
+  function openCreate() {
+    setEditingId(null);
+    setTitle("");
+    setDescription("");
+    setBannerUrl("");
+    setExpiresAt("");
+    setActive(true);
+    setFields([
+      { id: "nome", label: "Nome Completo", type: "text", required: true },
+      { id: "whatsapp", label: "WhatsApp / Telefone", type: "text", required: true },
+    ]);
     setError("");
+    setModalOpen(true);
   }
 
-  function chooseBanner(file: File | null) {
-    if (bannerPreview?.startsWith("blob:")) URL.revokeObjectURL(bannerPreview);
-    setBanner(file);
-    setBannerPreview(file ? URL.createObjectURL(file) : form.bannerUrl || null);
+  function openEdit(campaign: AdminFormCampaign) {
+    setEditingId(campaign.id);
+    setTitle(campaign.title);
+    setDescription(campaign.description || "");
+    setBannerUrl(campaign.bannerUrl || "");
+    setExpiresAt(campaign.expiresAt ? new Date(campaign.expiresAt).toISOString().slice(0, 16) : "");
+    setActive(campaign.active);
+    setFields(parseFields(campaign.fieldsJson));
+    setError("");
+    setModalOpen(true);
+  }
+
+  async function openResponses(campaign: AdminFormCampaign) {
+    setViewResponsesCampaign(campaign);
+    setLoadingSubmissions(true);
+    try {
+      const res = await fetch(`/api/admin/formularios/${campaign.id}/respostas`);
+      const data = await res.json();
+      if (res.ok) {
+        setSubmissions(data.items || []);
+      } else {
+        setSubmissions([]);
+      }
+    } catch {
+      setSubmissions([]);
+    } finally {
+      setLoadingSubmissions(false);
+    }
+  }
+
+  async function handleToggleActive(campaign: AdminFormCampaign) {
+    setBusy(true);
+    try {
+      const newActive = !campaign.active;
+      const res = await fetch("/api/admin/formularios", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: campaign.id,
+          title: campaign.title,
+          description: campaign.description,
+          bannerUrl: campaign.bannerUrl,
+          active: newActive,
+          expiresAt: campaign.expiresAt,
+          fields: parseFields(campaign.fieldsJson),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao atualizar status");
+
+      setCampaigns((prev) =>
+        prev.map((c) => {
+          if (c.id === campaign.id) return { ...c, active: newActive };
+          if (newActive) return { ...c, active: false };
+          return c;
+        })
+      );
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Erro ao alterar status");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+
+    try {
+      const payload = {
+        title,
+        description: description.trim() || null,
+        bannerUrl: bannerUrl.trim() || null,
+        active,
+        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+        fields,
+      };
+
+      const url = "/api/admin/formularios";
+      const method = editingId ? "PUT" : "POST";
+      const body = editingId ? JSON.stringify({ ...payload, id: editingId }) : JSON.stringify(payload);
+
+      const res = await fetch(url, {
+        method,
+        headers: { "content-type": "application/json" },
+        body,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao salvar formulário");
+
+      if (editingId) {
+        setCampaigns((prev) =>
+          prev.map((c) => {
+            if (c.id === editingId) return { ...c, ...data.item };
+            if (data.item.active) return { ...c, active: false };
+            return c;
+          })
+        );
+      } else {
+        setCampaigns((prev) => [
+          data.item,
+          ...prev.map((c) => (data.item.active ? { ...c, active: false } : c)),
+        ]);
+      }
+
+      setModalOpen(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Falha ao salvar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deletingCampaign) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/formularios", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: deletingCampaign.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao excluir");
+
+      setCampaigns((prev) => prev.filter((c) => c.id !== deletingCampaign.id));
+      setDeletingCampaign(null);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Falha ao excluir formulário");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function addField() {
+    const id = `campo_${Date.now().toString().slice(-4)}`;
+    setFields((prev) => [...prev, { id, label: "Novo Campo", type: "text", required: false }]);
+  }
+
+  function removeField(index: number) {
+    setFields((prev) => prev.filter((_, i) => i !== index));
   }
 
   function updateField(index: number, patch: Partial<DynamicFormField>) {
-    setForm((current) => ({ ...current, fields: current.fields.map((field, fieldIndex) => fieldIndex === index ? { ...field, ...patch } : field) }));
+    setFields((prev) =>
+      prev.map((f, i) => (i === index ? { ...f, ...patch } : f))
+    );
   }
 
-  function moveField(index: number, direction: -1 | 1) {
-    const target = index + direction;
-    if (target < 0 || target >= form.fields.length) return;
-    const fields = [...form.fields];
-    [fields[index], fields[target]] = [fields[target], fields[index]];
-    setForm({ ...form, fields });
-  }
+  return (
+    <div>
+      {/* CABEÇALHO PADRÃO PDM1 COM BOTÃO DE CRIAR */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "14px",
+          marginBottom: "20px",
+        }}
+      >
+        <div>
+          <h2 style={{ margin: 0, fontSize: "1.35rem", fontWeight: 700, color: "#fff" }}>
+            Formulários e Campanhas
+          </h2>
+          <p style={{ margin: "4px 0 0", fontSize: "0.86rem", color: "#94a3b8" }}>
+            Crie campanhas de inscrição, eventos e controle respostas recebidas.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="pdm-btn-primary pdm-btn-compact"
+          onClick={openCreate}
+        >
+          <Plus size={16} />
+          <span>Novo Formulário</span>
+        </button>
+      </div>
 
-  async function save(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      let bannerUrl = form.bannerUrl || null;
-      if (banner) {
-        const upload = new FormData();
-        upload.set("file", banner);
-        upload.set("kind", "banner");
-        bannerUrl = (await responseBody<{ url: string }>(await fetch("/api/admin/uploads", { method: "POST", body: upload }))).url;
-      }
-      const payload = { ...form, bannerUrl, description: form.description || null, expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null };
-      const body = await responseBody<{ item: Campaign }>(await fetch("/api/admin/formularios", {
-        method: editing ? "PUT" : "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(editing ? { ...payload, id: editing } : payload),
-      }));
-      setCampaigns((current) => {
-        const normalized = body.item.active ? current.map((item) => ({ ...item, active: false })) : current;
-        const next = editing ? normalized.map((item) => item.id === editing ? body.item : item) : [body.item, ...normalized];
-        return next.sort((left, right) => Number(right.active) - Number(left.active) || right.createdAt.localeCompare(left.createdAt));
-      });
-      clearForm();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Não foi possível salvar a campanha.");
-    } finally {
-      setBusy(false);
-    }
-  }
+      {/* TABELA PADRÃO PDM1 */}
+      {campaigns.length === 0 ? (
+        <div
+          className="card"
+          style={{
+            padding: "48px 24px",
+            textAlign: "center",
+            background: "var(--surface)",
+            borderRadius: "16px",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+          }}
+        >
+          <FileText size={42} style={{ color: "#64748b", margin: "0 auto 12px" }} />
+          <h3 style={{ margin: "0 0 6px", color: "#fff", fontSize: "1.1rem" }}>
+            Nenhum formulário cadastrado
+          </h3>
+          <p style={{ margin: "0 0 16px", color: "#94a3b8", fontSize: "0.88rem" }}>
+            Clique no botão acima para criar sua primeira campanha ou formulário de inscrição.
+          </p>
+          <button
+            type="button"
+            className="pdm-btn-primary pdm-btn-compact"
+            onClick={openCreate}
+          >
+            <Plus size={15} />
+            <span>Criar Formulário Agora</span>
+          </button>
+        </div>
+      ) : (
+        <div className="card table-card compact-table" style={{ borderRadius: "14px" }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Formulário</th>
+                <th>Período</th>
+                <th>Status</th>
+                <th>Respostas</th>
+                <th style={{ textAlign: "right" }}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {campaigns.map((camp) => (
+                <tr key={camp.id}>
+                  <td>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <strong style={{ color: "#f8fafc", fontSize: "0.92rem" }}>
+                        {camp.title}
+                      </strong>
+                      {camp.description && (
+                        <small style={{ color: "#94a3b8", fontSize: "0.78rem" }}>
+                          {camp.description.slice(0, 75)}
+                          {camp.description.length > 75 ? "..." : ""}
+                        </small>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: "0.78rem", color: "#cbd5e1" }}>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Início:</span>{" "}
+                        {new Date(camp.createdAt).toLocaleDateString("pt-BR")}
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Término:</span>{" "}
+                        {formatDate(camp.expiresAt)}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(camp)}
+                      className={`pdm-badge ${camp.active ? "active" : "inactive"}`}
+                      style={{ cursor: "pointer", border: "none" }}
+                      title="Clique para alternar ativação no topo do site"
+                    >
+                      {camp.active ? (
+                        <>
+                          <CheckCircle2 size={12} /> Ativo no site
+                        </>
+                      ) : (
+                        <>
+                          <XCircle size={12} /> Inativo
+                        </>
+                      )}
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="table-action-btn"
+                      style={{
+                        background: "rgba(147, 51, 234, 0.12)",
+                        color: "#c084fc",
+                        borderColor: "rgba(147, 51, 234, 0.25)",
+                      }}
+                      onClick={() => openResponses(camp)}
+                    >
+                      <Eye size={13} />
+                      <span>{camp._count?.submissions ?? 0} respostas</span>
+                    </button>
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="table-action-btn edit"
+                        onClick={() => openEdit(camp)}
+                        title="Editar formulário"
+                      >
+                        <Edit2 size={13} />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="table-action-btn delete"
+                        onClick={() => setDeletingCampaign(camp)}
+                        title="Excluir formulário"
+                      >
+                        <Trash2 size={13} />
+                        <span>Excluir</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-  function edit(campaign: Campaign) {
-    setView("campaigns");
-    setEditing(campaign.id);
-    setForm({ title: campaign.title, description: campaign.description || "", bannerUrl: campaign.bannerUrl || "", active: campaign.active, expiresAt: inputDate(campaign.expiresAt), fields: parseFormFields(campaign.fieldsJson) });
-    setBanner(null);
-    setBannerPreview(campaign.bannerUrl);
-    setError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+      {/* MODAL PADRÃO PDM1 DE CRIAR / EDITAR FORMULÁRIO */}
+      <PdmModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingId ? "Editar Formulário" : "Novo Formulário"}
+        subtitle="Defina o título, datas de início/término e campos a serem preenchidos."
+        maxWidth="680px"
+      >
+        <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px" }}>
+            <label className="field">
+              Nome do Formulário / Campanha *
+              <input
+                required
+                maxLength={180}
+                placeholder="Ex: Inscrições EJC Aparecida 2026"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              Descrição / Orientações
+              <textarea
+                rows={2}
+                placeholder="Explique o objetivo do formulário ou informações para quem vai se inscrever..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </label>
+          </div>
 
-  async function remove(campaign: Campaign) {
-    if (!confirm(`Excluir “${campaign.title}” e suas ${campaign._count.submissions} resposta(s)?`)) return;
-    setBusy(true);
-    setError("");
-    try {
-      await responseBody<{ ok: boolean }>(await fetch("/api/admin/formularios", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: campaign.id }) }));
-      setCampaigns((current) => current.filter((item) => item.id !== campaign.id));
-      if (editing === campaign.id) clearForm();
-      if (responses?.campaign.id === campaign.id) setResponses(null);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Não foi possível excluir a campanha.");
-    } finally {
-      setBusy(false);
-    }
-  }
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <label className="field">
+              Data de Término / Validade
+              <input
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              URL da Imagem / Banner (Opcional)
+              <input
+                placeholder="https://..."
+                value={bannerUrl}
+                onChange={(e) => setBannerUrl(e.target.value)}
+              />
+            </label>
+          </div>
 
-  async function openResponses(campaign: Campaign) {
-    setBusy(true);
-    setError("");
-    try {
-      const body = await responseBody<ResponseView>(await fetch(`/api/admin/formularios/${campaign.id}/respostas`));
-      setResponses(body);
-      setView("responses");
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Não foi possível carregar as respostas.");
-    } finally {
-      setBusy(false);
-    }
-  }
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 14px",
+              borderRadius: "10px",
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+            }}
+          >
+            <input
+              id="activeCampaign"
+              type="checkbox"
+              checked={active}
+              onChange={(e) => setActive(e.target.checked)}
+              style={{ width: "18px", height: "18px", accentColor: "var(--brand)" }}
+            />
+            <label htmlFor="activeCampaign" style={{ margin: 0, cursor: "pointer", fontSize: "0.86rem", color: "#e2e8f0" }}>
+              <strong>Destacar e ativar formulário no topo do site oficial</strong>
+            </label>
+          </div>
 
-  return <>
-    <div className="module-tabs" role="tablist" aria-label="Gestão de formulários"><button type="button" role="tab" aria-selected={view === "campaigns"} onClick={() => setView("campaigns")}>Campanhas</button><button type="button" role="tab" aria-selected={view === "responses"} disabled={!responses} onClick={() => responses && setView("responses")}>Respostas</button></div>
-    {error && <p className="error" role="alert">{error}</p>}
-    {view === "campaigns" && <div className="admin-grid forms-admin-grid">
-      <form className="card form admin-form campaign-editor" onSubmit={save}>
-        <div className="form-heading"><h2>{editing ? "Editar campanha" : "Nova campanha"}</h2>{editing && <button className="button secondary small" type="button" onClick={clearForm}>Cancelar</button>}</div>
-        <label className="field">Título<input required maxLength={180} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
-        <label className="field">Descrição<textarea rows={3} maxLength={4000} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
-        <label className="field">Banner<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseBanner(event.target.files?.[0] || null)} /><small>JPEG, PNG ou WebP · até 5 MB</small></label>
-        {bannerPreview && <div className="banner-preview"><img src={bannerPreview} alt="Prévia do banner" /><button className="button secondary small" type="button" onClick={() => { chooseBanner(null); setForm({ ...form, bannerUrl: "" }); }}>Remover</button></div>}
-        <div className="form-row"><label className="field field-grow">Validade<input type="datetime-local" value={form.expiresAt} onChange={(event) => setForm({ ...form, expiresAt: event.target.value })} /></label><label className="checkbox-field active-campaign"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /><span>Exibir no topo do site</span></label></div>
-        <div className="field-builder-heading"><div><strong>Campos do formulário</strong><small>Sem campos, a campanha funciona somente como banner.</small></div><button className="button secondary small" type="button" onClick={() => setForm({ ...form, fields: [...form.fields, newField()] })}>+ Adicionar campo</button></div>
-        <div className="field-builder">{form.fields.map((field, index) => <fieldset key={field.id} className="dynamic-field-card"><legend>Campo {index + 1}</legend><div className="form-row"><label className="field field-grow">Pergunta<input required maxLength={160} value={field.label} onChange={(event) => updateField(index, { label: event.target.value })} /></label><label className="field">Tipo<select value={field.type} onChange={(event) => { const type = event.target.value as DynamicFormField["type"]; updateField(index, { type, options: type === "select" ? field.options || [] : undefined }); }}>{FORM_FIELD_TYPES.map((type) => <option value={type} key={type}>{typeLabels[type]}</option>)}</select></label></div>{field.type === "select" && <label className="field">Opções (uma por linha)<textarea required rows={3} value={(field.options || []).join("\n")} onChange={(event) => updateField(index, { options: event.target.value.split("\n").map((value) => value.trim()).filter(Boolean) })} /></label>}<div className="field-actions"><label className="checkbox-field"><input type="checkbox" checked={Boolean(field.required)} onChange={(event) => updateField(index, { required: event.target.checked })} /><span>Obrigatório</span></label><div className="actions"><button className="button secondary small" type="button" disabled={index === 0} onClick={() => moveField(index, -1)} aria-label="Mover campo para cima">↑</button><button className="button secondary small" type="button" disabled={index === form.fields.length - 1} onClick={() => moveField(index, 1)} aria-label="Mover campo para baixo">↓</button><button className="button danger small" type="button" onClick={() => setForm({ ...form, fields: form.fields.filter((_, fieldIndex) => fieldIndex !== index) })}>Remover</button></div></div></fieldset>)}</div>
-        <button className="button" type="submit" disabled={busy}>{busy ? "Salvando…" : editing ? "Salvar alterações" : "Criar campanha"}</button>
-      </form>
-      <div className="campaign-admin-list">{campaigns.map((campaign) => <article className="card campaign-admin-card" key={campaign.id}>{campaign.bannerUrl && <img src={campaign.bannerUrl} alt="" />}<div><div className="campaign-card-heading"><span className={`badge ${campaign.active ? "positive" : ""}`}>{campaign.active ? "Ativa" : "Inativa"}</span><span className="muted">{campaign._count.submissions} resposta(s)</span></div><h3>{campaign.title}</h3><p>{campaign.description || "Sem descrição."}</p><small>{parseFormFields(campaign.fieldsJson).length} campo(s){campaign.expiresAt ? ` · válida até ${displayDate(campaign.expiresAt)}` : " · sem validade"}</small><div className="actions"><button className="button secondary small" type="button" disabled={busy} onClick={() => edit(campaign)}>Editar</button><button className="button secondary small" type="button" disabled={busy} onClick={() => openResponses(campaign)}>Ver respostas</button><a className="button secondary small" href={`/api/admin/formularios/${campaign.id}/export`}>Exportar CSV</a><button className="button danger small" type="button" disabled={busy} onClick={() => remove(campaign)}>Excluir</button></div></div></article>)}{!campaigns.length && <div className="card empty">Nenhuma campanha cadastrada.</div>}</div>
-    </div>}
-    {view === "responses" && responses && <section className="responses-panel"><div className="section-heading compact"><div><span className="eyebrow">Respostas</span><h2>{responses.campaign.title}</h2></div><div className="actions"><a className="button" href={`/api/admin/formularios/${responses.campaign.id}/export`}>Exportar CSV / Excel</a><button className="button secondary" type="button" onClick={() => setView("campaigns")}>Voltar</button></div></div><p className="muted">Exibindo até as 200 respostas mais recentes. O CSV contém o histórico completo.</p><div className="card table-card responses-table"><table><thead><tr><th>Enviado em</th>{responses.campaign.fields.map((field) => <th key={field.id}>{field.label}</th>)}</tr></thead><tbody>{responses.items.map((submission) => <tr key={submission.id}><td>{displayDate(submission.createdAt)}</td>{responses.campaign.fields.map((field) => <td key={field.id}>{responseValue(submission.data[field.id])}</td>)}</tr>)}</tbody></table>{!responses.items.length && <div className="empty">Nenhuma resposta recebida.</div>}</div></section>}
-  </>;
+          {/* CAMPOS DINÂMICOS */}
+          <div style={{ marginTop: "4px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "#cbd5e1" }}>
+                Campos do Formulário ({fields.length})
+              </span>
+              <button
+                type="button"
+                className="pdm-btn-secondary pdm-btn-small"
+                onClick={addField}
+              >
+                <Plus size={13} />
+                <span>Adicionar Campo</span>
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "220px", overflowY: "auto", paddingRight: "4px" }}>
+              {fields.map((field, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.2fr 1fr auto auto",
+                    gap: "8px",
+                    alignItems: "center",
+                    background: "rgba(255, 255, 255, 0.03)",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255, 255, 255, 0.06)",
+                  }}
+                >
+                  <input
+                    value={field.label}
+                    placeholder="Nome do campo"
+                    onChange={(e) => updateField(idx, { label: e.target.value })}
+                    style={{ fontSize: "0.82rem", padding: "6px 8px" }}
+                  />
+                  <select
+                    value={field.type}
+                    onChange={(e) => updateField(idx, { type: e.target.value as DynamicFormField["type"] })}
+                    style={{ fontSize: "0.82rem", padding: "6px 8px" }}
+                  >
+                    <option value="text">Texto curto</option>
+                    <option value="number">Número</option>
+                    <option value="select">Lista de opções</option>
+                    <option value="checkbox">Caixa de marcar</option>
+                  </select>
+                  <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.78rem", color: "#94a3b8", cursor: "pointer", margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={field.required}
+                      onChange={(e) => updateField(idx, { required: e.target.checked })}
+                    />
+                    Obrigatório
+                  </label>
+                  <button
+                    type="button"
+                    className="pdm-btn-danger pdm-btn-small"
+                    onClick={() => removeField(idx)}
+                    title="Remover campo"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {error && <p className="error" role="alert">{error}</p>}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+            <button
+              type="button"
+              className="pdm-btn-secondary pdm-btn-compact"
+              onClick={() => setModalOpen(false)}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="pdm-btn-primary pdm-btn-compact"
+              disabled={busy}
+            >
+              {busy ? "Salvando..." : editingId ? "Salvar Alterações" : "Criar Formulário"}
+            </button>
+          </div>
+        </form>
+      </PdmModal>
+
+      {/* MODAL PADRÃO PDM1 DE VER RESPOSTAS */}
+      <PdmModal
+        open={Boolean(viewResponsesCampaign)}
+        onClose={() => setViewResponsesCampaign(null)}
+        title={`Respostas: ${viewResponsesCampaign?.title || ""}`}
+        subtitle={`${submissions.length} resposta(s) enviada(s) até o momento.`}
+        maxWidth="760px"
+      >
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginBottom: "14px",
+            }}
+          >
+            {viewResponsesCampaign && (
+              <a
+                href={`/api/admin/formularios/${viewResponsesCampaign.id}/export`}
+                className="pdm-btn-secondary pdm-btn-compact"
+                target="_blank"
+                rel="noreferrer"
+                download
+              >
+                <Download size={14} />
+                <span>Baixar Planilha (Excel/CSV)</span>
+              </a>
+            )}
+          </div>
+
+          {loadingSubmissions ? (
+            <div style={{ textAlign: "center", padding: "30px", color: "#94a3b8" }}>
+              Carregando respostas...
+            </div>
+          ) : submissions.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "36px 12px", color: "#94a3b8" }}>
+              Nenhuma resposta recebida para este formulário ainda.
+            </div>
+          ) : (
+            <div
+              style={{
+                maxHeight: "380px",
+                overflowY: "auto",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "10px",
+              }}
+            >
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                <thead>
+                  <tr style={{ background: "rgba(255, 255, 255, 0.04)", borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: "#94a3b8" }}>Data</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: "#94a3b8" }}>Dados Enviados</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map((sub) => (
+                    <tr key={sub.id} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                      <td style={{ padding: "10px 12px", verticalAlign: "top", whiteSpace: "nowrap", color: "#cbd5e1" }}>
+                        {new Date(sub.createdAt).toLocaleString("pt-BR")}
+                      </td>
+                      <td style={{ padding: "10px 12px", verticalAlign: "top" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                          {Object.entries(sub.data).map(([k, v]) => (
+                            <div key={k}>
+                              <span style={{ color: "#94a3b8", textTransform: "capitalize" }}>{k}: </span>
+                              <strong style={{ color: "#f1f5f9" }}>{String(v)}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
+            <button
+              type="button"
+              className="pdm-btn-secondary pdm-btn-compact"
+              onClick={() => setViewResponsesCampaign(null)}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      </PdmModal>
+
+      {/* CONFIRMAÇÃO DE EXCLUSÃO PADRÃO PDM1 */}
+      <PdmConfirmModal
+        open={Boolean(deletingCampaign)}
+        onClose={() => setDeletingCampaign(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Excluir Formulário"
+        message={`Tem certeza que deseja excluir o formulário "${deletingCampaign?.title}"? Todas as respostas associadas serão apagadas permanentemente.`}
+        confirmLabel="Sim, excluir formulário"
+        busy={busy}
+      />
+    </div>
+  );
 }

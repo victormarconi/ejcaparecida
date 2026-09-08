@@ -26,9 +26,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
 
-  const isFinanceUser = user.username === "financas";
-
-  // Menu organizado em seções limpas estilo Gestor PDM1 / Securo (sem duplicidades)
+  // Menu organizado em seções limpas estilo Gestor PDM1 (sem duplicidades)
   const navSections = [
     {
       title: "Principal",
@@ -41,15 +39,11 @@ export function AppShell({
     {
       title: "Gestão & Paróquia",
       items: [
-        {
-          label: "Finanças",
-          href: "/admin/financas",
-          icon: DollarSign,
-        },
+        { label: "Finanças", href: "/admin/financas", icon: DollarSign },
         { label: "Avisos & Murais", href: "/admin/avisos", icon: Bell },
-        { label: "Equipe & Liderança", href: "/admin/equipe", icon: Users },
+        { label: "Equipe Dirigente", href: "/admin/equipe", icon: Users },
         { label: "Formulários", href: "/admin/formularios", icon: Sparkles },
-        { label: "Patrimônio & Estoque", href: "/admin/aluguel", icon: Package },
+        { label: "Estoque", href: "/admin/estoque", icon: Package },
         { label: "Localizações", href: "/admin/localizacoes", icon: MapPin },
       ],
     },
@@ -96,7 +90,6 @@ export function AppShell({
                     >
                       <Icon size={18} className="nav-icon" />
                       <span className="nav-label">{item.label}</span>
-
                     </Link>
                   );
                 })}
@@ -130,7 +123,7 @@ export function AppShell({
               <span className="user-role">
                 {user.username === "financas"
                   ? "Financeiro"
-                  : "Equipe"}
+                  : "Equipe Geral"}
               </span>
             </div>
           </div>
@@ -155,10 +148,6 @@ export function AppShell({
             <span className="portal-label">EJC Nossa Senhora Aparecida</span>
           </div>
           <div className="topbar-right">
-            <Link className="topbar-btn secondary" href="/perfil">
-              <KeyRound size={15} />
-              <span>Minha Senha</span>
-            </Link>
             <Link className="topbar-btn primary" href="/" target="_blank">
               <span>Abrir Site</span>
             </Link>
