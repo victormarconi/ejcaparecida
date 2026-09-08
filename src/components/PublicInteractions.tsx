@@ -178,47 +178,97 @@ export function LocationTabs({
           </button>
         ))}
       </div>
-      <article className="card location-card" role="tabpanel" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", padding: "24px", borderRadius: "16px" }}>
-        <div>
-          <span className="eyebrow" style={{ textTransform: "uppercase", fontSize: "0.78rem", color: "var(--brand)" }}>{location.type}</span>
-          <h3 style={{ margin: "4px 0 8px", fontSize: "1.35rem" }}>{location.title}</h3>
-          <p className="chapel-address" style={{ margin: "0 0 14px", color: "var(--muted)" }}>📍 {location.address}</p>
-          {location.massSchedule && (
-            <div className="mass-schedule" style={{ marginTop: "12px", background: "rgba(255, 255, 255, 0.03)", padding: "12px", borderRadius: "10px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
-              <strong style={{ display: "block", marginBottom: "4px", fontSize: "0.85rem" }}>Horários das Missas</strong>
-              <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--muted)", whiteSpace: "pre-line" }}>{location.massSchedule}</p>
-            </div>
-          )}
-          <div style={{ marginTop: "18px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <a
-              className="button"
-              href={directionsUrl}
-              target="_blank"
-              rel="noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+      <article
+        className="card location-card"
+        role="tabpanel"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+          padding: "24px 28px",
+          borderRadius: "18px",
+        }}
+      >
+        {/* Topo com Título, Endereço e Botões de Rota */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: "16px",
+          }}
+        >
+          <div>
+            <span
+              className="eyebrow"
+              style={{
+                textTransform: "uppercase",
+                fontSize: "0.76rem",
+                color: "var(--brand)",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+              }}
             >
-              <span>🚗 Como Chegar</span>
-              <span>↗</span>
-            </a>
-            <a
-              className="button secondary"
-              href={directMapsUrl}
-              target="_blank"
-              rel="noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-            >
-              <span>📍 Abrir no Google Maps</span>
-              <span>↗</span>
-            </a>
+              {location.type}
+            </span>
+            <h3 style={{ margin: "2px 0 6px", fontSize: "1.5rem", fontWeight: 800, color: "var(--text)" }}>
+              {location.title}
+            </h3>
+            <p className="chapel-address" style={{ margin: 0, color: "var(--muted)", fontSize: "0.92rem" }}>
+              📍 {location.address}
+            </p>
           </div>
+
+          <a
+            className="button secondary"
+            href={directMapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            <span>Abrir no Google Maps</span>
+            <span>↗</span>
+          </a>
         </div>
-        <div style={{ borderRadius: "12px", overflow: "hidden", minHeight: "320px", border: "1px solid var(--border)" }}>
+
+        {/* Horários das Missas */}
+        {location.massSchedule && (
+          <div
+            className="mass-schedule"
+            style={{
+              background: "rgba(255, 255, 255, 0.03)",
+              padding: "12px 18px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255, 255, 255, 0.06)",
+            }}
+          >
+            <strong style={{ display: "block", marginBottom: "4px", fontSize: "0.85rem", color: "#38bdf8" }}>
+              ⏰ Horários das Missas
+            </strong>
+            <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--muted)", whiteSpace: "pre-line" }}>
+              {location.massSchedule}
+            </p>
+          </div>
+        )}
+
+        {/* Mapa em Largura Total */}
+        <div
+          style={{
+            borderRadius: "14px",
+            overflow: "hidden",
+            height: "380px",
+            border: "1px solid var(--border)",
+            width: "100%",
+            marginTop: "4px",
+          }}
+        >
           <iframe
             title={`Mapa de ${location.title}`}
             src={map}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            style={{ width: "100%", height: "100%", minHeight: "320px", border: 0, display: "block" }}
+            style={{ width: "100%", height: "100%", border: 0, display: "block" }}
           />
         </div>
       </article>
