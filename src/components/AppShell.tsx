@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import {
   Calendar,
   FileText,
@@ -47,10 +48,17 @@ export function AppShell({
     },
   ];
 
+const sidebarRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (sidebarRef.current) {
+      sidebarRef.current.scrollTop = 0;
+    }
+  }, [pathname]);
+
   return (
     <div className="ejc-layout">
       {/* SIDEBAR COM SCROLL INDEPENDENTE E ESTILO GESTOR PDM1 */}
-      <aside className="ejc-sidebar">
+      <aside className="ejc-sidebar" ref={sidebarRef} style={{ scrollTop: 0 } as any}>
         {/* Brand */}
         <div className="ejc-sidebar-brand">
           <Link href="/admin/calendario" className="brand-link">

@@ -536,7 +536,7 @@ tr:last-child td { border-bottom: 0; }
   top: 0;
   height: 100vh;
   max-height: 100vh;
-  overflow: hidden !important;
+  overflow: visible;
   z-index: 40;
 }
 
