@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Edit2, Trash2, Calendar as CalendarIcon, Clock, MapPin, ChevronLeft, ChevronRight, FileText, Globe, Lock } from "lucide-react";
+import { Plus, Edit2, Trash2, Calendar as CalendarIcon, Clock, MapPin, ChevronLeft, ChevronRight, Globe, Lock } from "lucide-react";
 import { PdmModal, PdmConfirmModal } from "@/components/PdmModal";
 
 export type EventItem = {
@@ -37,7 +37,6 @@ function toLocalInput(iso?: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
-  // format YYYY-MM-DDTHH:mm
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -55,6 +54,13 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+
+  // Day detail modal state
+  const [selectedDay, setSelectedDay] = useState<{
+    dateStr: string;
+    dayNum: number;
+    formattedDate: string;
+  } | null>(null);
 
   // Modal create/edit
   const [modalOpen, setModalOpen] = useState(false);
@@ -192,6 +198,18 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
     setCurrentMonth(new Date(year, month + 1, 1));
   }
 
+  // Events of selected day for the modal
+  const dayModalEvents = selectedDay
+    ? events.filter((ev) => {
+        const evDate = new Date(ev.startsAt);
+        return (
+          evDate.getFullYear() === year &&
+          evDate.getMonth() === month &&
+          evDate.getDate() === selectedDay.dayNum
+        );
+      })
+    : [];
+
   return (
     <div>
       {/* CABEÇALHO PADRÃO PDM1 */}
@@ -210,12 +228,11 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
             Calendário Paroquial
           </h2>
           <p style={{ margin: "4px 0 0", fontSize: "0.86rem", color: "#94a3b8" }}>
-            Visualize os dias de compromissos, reuniões e eventos com horários formatados.
+            Clique em qualquer dia para ver os detalhes completos ou agendar novos compromissos.
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          {/* Alternador de Visão */}
           <div className="module-tabs" style={{ margin: 0 }}>
             <button
               type="button"
@@ -320,10 +337,10 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
               <div
                 key={`empty-${i}`}
                 style={{
-                  minHeight: "85px",
+                  minHeight: "90px",
                   background: "rgba(255, 255, 255, 0.01)",
                   borderRadius: "8px",
-                  opacity: 0.3,
+                  opacity: 0.2,
                 }}
               />
             ))}
@@ -348,14 +365,22 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                 new Date().getMonth() === month &&
                 new Date().getDate() === dayNum;
 
+              const hasEvents = dayEvents.length > 0;
+
               return (
                 <div
                   key={dayNum}
                   style={{
-                    minHeight: "92px",
-                    background: isToday ? "rgba(2, 132, 199, 0.08)" : "rgba(255, 255, 255, 0.03)",
+                    minHeight: "95px",
+                    background: isToday
+                      ? "rgba(2, 132, 199, 0.09)"
+                      : hasEvents
+                      ? "rgba(56, 189, 248, 0.04)"
+                      : "rgba(255, 255, 255, 0.02)",
                     border: isToday
                       ? "1px solid #0284c7"
+                      : hasEvents
+                      ? "1px solid rgba(56, 189, 248, 0.25)"
                       : "1px solid rgba(255, 255, 255, 0.06)",
                     borderRadius: "10px",
                     padding: "6px 8px",
@@ -365,8 +390,22 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                     cursor: "pointer",
                     transition: "all 0.15s ease",
                   }}
-                  onClick={() => openCreate(dateStr)}
-                  title="Clique para adicionar evento neste dia"
+                  onClick={() => {
+                    const d = new Date(year, month, dayNum);
+                    const formattedDate = d.toLocaleDateString("pt-BR", {
+                      weekday: "long",
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    });
+
+                    if (hasEvents) {
+                      setSelectedDay({ dateStr, dayNum, formattedDate });
+                    } else {
+                      openCreate(dateStr);
+                    }
+                  }}
+                  title={hasEvents ? `Clique para ver ${dayEvents.length} evento(s) detalhado(s)` : "Clique para agendar evento neste dia"}
                 >
                   <div
                     style={{
@@ -377,25 +416,25 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                   >
                     <span
                       style={{
-                        fontSize: "0.82rem",
+                        fontSize: "0.84rem",
                         fontWeight: 700,
-                        color: isToday ? "#38bdf8" : "#cbd5e1",
+                        color: isToday ? "#38bdf8" : hasEvents ? "#f1f5f9" : "#94a3b8",
                       }}
                     >
                       {dayNum}
                     </span>
-                    {dayEvents.length > 0 && (
+                    {hasEvents && (
                       <span
                         style={{
-                          fontSize: "0.70rem",
-                          background: "var(--brand)",
+                          fontSize: "0.68rem",
+                          background: "#0284c7",
                           color: "#fff",
                           borderRadius: "999px",
                           padding: "1px 6px",
                           fontWeight: 700,
                         }}
                       >
-                        {dayEvents.length}
+                        {dayEvents.length} {dayEvents.length === 1 ? "evento" : "eventos"}
                       </span>
                     )}
                   </div>
@@ -405,18 +444,14 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                     {dayEvents.map((ev) => (
                       <div
                         key={ev.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(ev);
-                        }}
                         style={{
                           fontSize: "0.72rem",
-                          padding: "2px 6px",
-                          borderRadius: "4px",
+                          padding: "3px 6px",
+                          borderRadius: "5px",
                           background:
                             ev.visibility === "PUBLIC"
-                              ? "rgba(14, 165, 233, 0.2)"
-                              : "rgba(168, 85, 247, 0.2)",
+                              ? "rgba(14, 165, 233, 0.18)"
+                              : "rgba(168, 85, 247, 0.18)",
                           color: ev.visibility === "PUBLIC" ? "#38bdf8" : "#c084fc",
                           border:
                             ev.visibility === "PUBLIC"
@@ -427,7 +462,6 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                           textOverflow: "ellipsis",
                           lineHeight: 1.2,
                         }}
-                        title={`${formatTime(ev.startsAt)} - ${ev.title}`}
                       >
                         <strong>{formatTime(ev.startsAt)}</strong> {ev.title}
                       </div>
@@ -577,6 +611,146 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
           </div>
         )
       )}
+
+      {/* MODAL DETALHADO DOS EVENTOS DO DIA AO CLICAR NO DIA */}
+      <PdmModal
+        open={Boolean(selectedDay)}
+        onClose={() => setSelectedDay(null)}
+        title={`Eventos de ${selectedDay ? selectedDay.formattedDate : ""}`}
+        subtitle={`${dayModalEvents.length} compromisso(s) agendado(s) neste dia.`}
+        maxWidth="620px"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="pdm-btn-primary pdm-btn-compact"
+              onClick={() => {
+                const d = selectedDay?.dateStr;
+                setSelectedDay(null);
+                openCreate(d);
+              }}
+            >
+              <Plus size={15} />
+              <span>Adicionar Outro Evento Neste Dia</span>
+            </button>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "380px", overflowY: "auto" }}>
+            {dayModalEvents.map((ev) => (
+              <div
+                key={ev.id}
+                style={{
+                  background: "rgba(255, 255, 255, 0.03)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  borderRadius: "12px",
+                  padding: "14px 16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: "1.05rem", color: "#fff", fontWeight: 700 }}>
+                      {ev.title}
+                    </h4>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          fontSize: "0.80rem",
+                          color: "#38bdf8",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <Clock size={13} />
+                        {formatTime(ev.startsAt)}
+                        {ev.endsAt && ` às ${formatTime(ev.endsAt)}`}
+                      </span>
+
+                      {ev.location && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            fontSize: "0.80rem",
+                            color: "#cbd5e1",
+                          }}
+                        >
+                          <MapPin size={13} style={{ color: "#f87171" }} />
+                          {ev.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <span
+                    className="pdm-badge"
+                    style={{
+                      background:
+                        ev.visibility === "PUBLIC"
+                          ? "rgba(14, 165, 233, 0.12)"
+                          : "rgba(168, 85, 247, 0.12)",
+                      color: ev.visibility === "PUBLIC" ? "#38bdf8" : "#c084fc",
+                      borderColor:
+                        ev.visibility === "PUBLIC"
+                          ? "rgba(14, 165, 233, 0.25)"
+                          : "rgba(168, 85, 247, 0.25)",
+                    }}
+                  >
+                    {ev.visibility === "PUBLIC" ? "Público" : "Membros"}
+                  </span>
+                </div>
+
+                {ev.description && (
+                  <p style={{ margin: 0, fontSize: "0.84rem", color: "#94a3b8", lineHeight: 1.4 }}>
+                    {ev.description}
+                  </p>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "4px" }}>
+                  <button
+                    type="button"
+                    className="table-action-btn edit"
+                    onClick={() => {
+                      setSelectedDay(null);
+                      openEdit(ev);
+                    }}
+                  >
+                    <Edit2 size={12} />
+                    <span>Editar</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="table-action-btn delete"
+                    onClick={() => {
+                      setSelectedDay(null);
+                      setDeletingEvent(ev);
+                    }}
+                  >
+                    <Trash2 size={12} />
+                    <span>Excluir</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="pdm-btn-secondary pdm-btn-compact"
+              onClick={() => setSelectedDay(null)}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      </PdmModal>
 
       {/* MODAL PADRÃO PDM1 DE CRIAR / EDITAR EVENTO */}
       <PdmModal
