@@ -148,7 +148,7 @@ export function LocationTabs({
   const [active, setActive] = useState(locations[0]?.id);
   const location = locations.find((item) => item.id === active) || locations[0];
   if (!location) return null;
-    // Resolve embed map target (coordinates or query)
+  // Resolve embed map target and universal mobile-friendly links
   let mapTarget = location.query;
   if (location.mapUrl) {
     const coordMatch = location.mapUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || location.mapUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
@@ -156,7 +156,11 @@ export function LocationTabs({
       mapTarget = `${coordMatch[1]},${coordMatch[2]}`;
     }
   }
-  const map = `https://www.google.com/maps?q=${encodeURIComponent(mapTarget)}&z=18&output=embed`;
+
+  const cleanTarget = mapTarget || `${location.title} Valentina João Pessoa`;
+  const directMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanTarget)}`;
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(cleanTarget)}`;
+  const map = `https://www.google.com/maps?q=${encodeURIComponent(cleanTarget)}&z=18&output=embed`;
   return (
     <div className="locations">
       <div className="tabs location-tabs" role="tablist" aria-label="Escolha uma localização" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "18px" }}>
@@ -185,15 +189,25 @@ export function LocationTabs({
               <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--muted)", whiteSpace: "pre-line" }}>{location.massSchedule}</p>
             </div>
           )}
-          <div style={{ marginTop: "18px" }}>
+          <div style={{ marginTop: "18px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <a
-              className="button secondary"
-              href={location.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.query)}`}
+              className="button"
+              href={directionsUrl}
               target="_blank"
               rel="noreferrer"
               style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
             >
-              <span>Abrir no Google Maps</span>
+              <span>🚗 Como Chegar</span>
+              <span>↗</span>
+            </a>
+            <a
+              className="button secondary"
+              href={directMapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <span>📍 Abrir no Google Maps</span>
               <span>↗</span>
             </a>
           </div>
