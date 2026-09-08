@@ -29,9 +29,13 @@ export default async function HomePage() {
     prisma.event.findMany({ where: { visibility: "PUBLIC" }, orderBy: { startsAt: "asc" }, take: 500 }),
     prisma.teamMember.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     prisma.location.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
-    prisma.systemSetting.findUnique({ where: { key: "pix_chave" } }),
+    prisma.systemSetting.findMany({ where: { key: { in: ["pix_chave", "pix_beneficiario", "pix_titulo", "pix_descricao"] } } }),
   ]);
-  const pixKey = pixSetting?.value || "ejcaparecida2000@gmail.com";
+    const pixMap = Object.fromEntries((pixSetting || []).map((s: { key: string; value: string }) => [s.key, s.value]));
+  const pixKey = pixMap.pix_chave || "ejcaparecida2000@gmail.com";
+  const pixBeneficiary = pixMap.pix_beneficiario || "";
+  const pixTitle = pixMap.pix_titulo || "Apoie a missão do EJC";
+  const pixDescription = pixMap.pix_descricao || "Quem desejar contribuir com a caminhada do grupo pode fazer uma doação pelo PIX.";
   const campaignFields = campaign ? parseFormFields(campaign.fieldsJson) : [];
   const serializedEvents = events.map((event) => ({
     id: event.id,
@@ -83,8 +87,21 @@ export default async function HomePage() {
     </div></section>
 
     <section className="section alt"><div className="container donation">
-      <div className="card"><span className="eyebrow">Doação</span><h2>Apoie a missão do EJC</h2><p>Quem desejar contribuir com a caminhada do grupo pode fazer uma doação pelo PIX.</p></div>
-      <div className="card pix-card"><span>PIX</span><strong>{pixKey}</strong><CopyPix value={pixKey} /></div>
+      <div className="card">
+        <span className="eyebrow">Doação</span>
+        <h2>{pixTitle}</h2>
+        <p>{pixDescription}</p>
+      </div>
+      <div className="card pix-card">
+        <span>PIX</span>
+        <strong>{pixKey}</strong>
+        {pixBeneficiary && (
+          <small style={{ display: "block", color: "rgba(255, 255, 255, 0.8)", fontSize: "0.82rem", margin: "2px 0 10px" }}>
+            Beneficiário: {pixBeneficiary}
+          </small>
+        )}
+        <CopyPix value={pixKey} />
+      </div>
     </div></section>
 
     <section className="section" id="instagram"><div className="container">

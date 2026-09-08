@@ -124,7 +124,24 @@ async function compressImageFile(file: File): Promise<Blob> {
   });
 }
 
-export function FinanceDashboard({ initialRows, referenceDate, canManage = false, initialPixKey = "ejcaparecida2000@gmail.com" }: { initialRows: FinanceRow[]; referenceDate: string; canManage?: boolean; initialPixKey?: string }) {
+export function FinanceDashboard({ initialRows, referenceDate, canManage = false,
+  initialPixConfig = {
+    pixKey: "ejcaparecida2000@gmail.com",
+    beneficiary: "Paróquia Nossa Senhora Aparecida",
+    pixTitle: "Apoie a missão do EJC",
+    pixDescription: "Quem desejar contribuir com a caminhada do grupo pode fazer uma doação pelo PIX.",
+  },
+}: {
+  initialRows: FinanceRow[];
+  referenceDate: string;
+  canManage?: boolean;
+  initialPixConfig?: {
+    pixKey: string;
+    beneficiary: string;
+    pixTitle: string;
+    pixDescription: string;
+  };
+}) {
   const [rows, setRows] = useState(initialRows);
   const allMonths = useMemo(() => getAllAvailableMonths(rows, referenceDate), [rows, referenceDate]);
   const recentMonths = useMemo(() => allMonths.slice(0, 3), [allMonths]);
@@ -139,9 +156,11 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
   
   // PIX Modal State
   const [pixModalOpen, setPixModalOpen] = useState(false);
-  const [currentPixKey, setCurrentPixKey] = useState(initialPixKey);
-  const [pixInput, setPixInput] = useState(initialPixKey);
-  const [pixBeneficiary, setPixBeneficiary] = useState("Paróquia Nossa Senhora Aparecida");
+  const [currentPixConfig, setCurrentPixConfig] = useState(initialPixConfig);
+  const [pixKeyInput, setPixKeyInput] = useState(initialPixConfig.pixKey);
+  const [pixBeneficiaryInput, setPixBeneficiaryInput] = useState(initialPixConfig.beneficiary);
+  const [pixTitleInput, setPixTitleInput] = useState(initialPixConfig.pixTitle);
+  const [pixDescInput, setPixDescInput] = useState(initialPixConfig.pixDescription);
   const [savingPix, setSavingPix] = useState(false);
   const [pixSuccess, setPixSuccess] = useState(false);
 
@@ -279,11 +298,21 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       const res = await fetch("/api/admin/configuracoes/pix", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ pixKey: pixInput.trim(), beneficiary: pixBeneficiary.trim() }),
+        body: JSON.stringify({
+          pixKey: pixKeyInput.trim(),
+          beneficiary: pixBeneficiaryInput.trim(),
+          pixTitle: pixTitleInput.trim(),
+          pixDescription: pixDescInput.trim(),
+        }),
       });
       const resData = await res.json();
-      if (!res.ok) throw new Error(resData.error || "Falha ao salvar chave PIX.");
-      setCurrentPixKey(resData.pixKey);
+      if (!res.ok) throw new Error(resData.error || "Falha ao salvar configurações do PIX.");
+      setCurrentPixConfig({
+        pixKey: resData.pixKey,
+        beneficiary: resData.beneficiary,
+        pixTitle: resData.pixTitle,
+        pixDescription: resData.pixDescription,
+      });
       setPixSuccess(true);
       setTimeout(() => {
         setPixSuccess(false);
@@ -380,7 +409,10 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
             type="button"
             className="pdm-btn-secondary pdm-btn-compact"
             onClick={() => {
-              setPixInput(currentPixKey);
+              setPixKeyInput(currentPixConfig.pixKey);
+              setPixBeneficiaryInput(currentPixConfig.beneficiary);
+              setPixTitleInput(currentPixConfig.pixTitle);
+              setPixDescInput(currentPixConfig.pixDescription);
               setError("");
               setPixModalOpen(true);
             }}
@@ -717,32 +749,54 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       onClose={() => setPixModalOpen(false)}
       title="Chave PIX da Paróquia"
       subtitle="Defina a chave oficial para doações exibida na página pública e campanhas."
-      maxWidth="500px"
+      maxWidth="580px"
     >
       <form onSubmit={handleSavePix} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         <div style={{ background: "rgba(2, 132, 199, 0.08)", padding: "12px 14px", borderRadius: "10px", border: "1px solid rgba(2, 132, 199, 0.2)", display: "flex", alignItems: "center", gap: "10px" }}>
           <QrCode size={24} style={{ color: "#38bdf8", flexShrink: 0 }} />
           <div style={{ fontSize: "0.82rem", color: "#cbd5e1" }}>
-            Chave atual no site público: <strong style={{ color: "#38bdf8" }}>{currentPixKey}</strong>
+            Chave atual: <strong style={{ color: "#38bdf8" }}>{currentPixConfig.pixKey}</strong>
+            {currentPixConfig.beneficiary && <span> ({currentPixConfig.beneficiary})</span>}
           </div>
         </div>
 
+        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
+          <label className="field">
+            Chave PIX Oficial *
+            <input
+              required
+              placeholder="Ex: email@paroquia.com, telefone ou chave aleatória"
+              value={pixKeyInput}
+              onChange={(e) => setPixKeyInput(e.target.value)}
+            />
+          </label>
+
+          <label className="field">
+            Nome do Titular / Beneficiário
+            <input
+              placeholder="Ex: Victor Marconi / Paróquia"
+              value={pixBeneficiaryInput}
+              onChange={(e) => setPixBeneficiaryInput(e.target.value)}
+            />
+          </label>
+        </div>
+
         <label className="field">
-          Chave PIX Oficial *
+          Título da Seção de Doação no Site
           <input
-            required
-            placeholder="Ex: email@paroquia.com, telefone ou chave aleatória"
-            value={pixInput}
-            onChange={(e) => setPixInput(e.target.value)}
+            placeholder="Ex: Apoie a missão do EJC"
+            value={pixTitleInput}
+            onChange={(e) => setPixTitleInput(e.target.value)}
           />
         </label>
 
         <label className="field">
-          Beneficiário / Nome da Conta
-          <input
-            placeholder="Ex: Paróquia Nossa Senhora Aparecida"
-            value={pixBeneficiary}
-            onChange={(e) => setPixBeneficiary(e.target.value)}
+          Texto / Frase Explicativa
+          <textarea
+            rows={2}
+            placeholder="Ex: Quem desejar contribuir com a caminhada do grupo pode fazer uma doação pelo PIX..."
+            value={pixDescInput}
+            onChange={(e) => setPixDescInput(e.target.value)}
           />
         </label>
 

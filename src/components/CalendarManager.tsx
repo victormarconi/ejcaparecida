@@ -493,19 +493,23 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                           fontSize: "0.74rem",
                           padding: "3px 6px",
                           borderRadius: "6px",
-                          background: getColor(ev.color).bg,
-                          color: getColor(ev.color).text,
-                          border: `1px solid ${getColor(ev.color).border}`,
+                          background: ev.visibility === "MEMBERS" ? "rgba(168, 85, 247, 0.16)" : getColor(ev.color).bg,
+                          color: ev.visibility === "MEMBERS" ? "#c084fc" : getColor(ev.color).text,
+                          border: ev.visibility === "MEMBERS" ? "1px dashed rgba(168, 85, 247, 0.5)" : `1px solid ${getColor(ev.color).border}`,
                           display: "flex",
                           alignItems: "center",
-                          gap: "5px",
+                          gap: "4px",
                           width: "100%",
                           minWidth: 0,
                           maxWidth: "100%",
                           overflow: "hidden",
                           lineHeight: 1.2,
                         }}
+                        title={`${ev.visibility === "MEMBERS" ? "[INTERNO] " : ""}${formatTime(ev.startsAt)} - ${ev.title}`}
                       >
+                        {ev.visibility === "MEMBERS" && (
+                          <Lock size={10} style={{ flexShrink: 0, color: "#c084fc" }} />
+                        )}
                         <strong style={{ flexShrink: 0, fontSize: "0.70rem" }}>{formatTime(ev.startsAt)}</strong>
                         <span style={{ minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
                           {ev.title}
@@ -756,15 +760,26 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                         background:
                           ev.visibility === "PUBLIC"
                             ? "rgba(14, 165, 233, 0.12)"
-                            : "rgba(168, 85, 247, 0.12)",
+                            : "rgba(168, 85, 247, 0.18)",
                         color: ev.visibility === "PUBLIC" ? "#38bdf8" : "#c084fc",
-                        borderColor:
+                        border:
                           ev.visibility === "PUBLIC"
-                            ? "rgba(14, 165, 233, 0.25)"
-                            : "rgba(168, 85, 247, 0.25)",
+                            ? "1px solid rgba(14, 165, 233, 0.25)"
+                            : "1px dashed rgba(168, 85, 247, 0.5)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
                       }}
                     >
-                      {ev.visibility === "PUBLIC" ? "Público" : "Membros"}
+                      {ev.visibility === "PUBLIC" ? (
+                        <>
+                          <Globe size={11} /> Público
+                        </>
+                      ) : (
+                        <>
+                          <Lock size={11} /> Interno (Apenas Membros)
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>

@@ -11,10 +11,11 @@ export default async function FinanceAdminPage() {
   // Demais usuários (ex: equipe) têm acesso exclusivo de visualização/consulta.
   const canManage = user.username === "financas" || user.email === "financas@ejc.local";
 
-  const [entries, pixSetting] = await Promise.all([
+  const [entries, pixSettings] = await Promise.all([
     prisma.financeEntry.findMany({ orderBy: { occurredAt: "desc" } }),
-    prisma.systemSetting.findUnique({ where: { key: "pix_chave" } }),
+    prisma.systemSetting.findMany({ where: { key: { in: ["pix_chave", "pix_beneficiario", "pix_titulo", "pix_descricao"] } } }),
   ]);
+  const pixConfigMap = Object.fromEntries(pixSettings.map((s) => [s.key, s.value]));
 
   const rows = entries.map((item) => ({
     ...item,
@@ -23,7 +24,7 @@ export default async function FinanceAdminPage() {
     updatedAt: item.updatedAt.toISOString(),
   }));
 
-  const initialPixKey = pixSetting?.value || "ejcaparecida2000@gmail.com";
+  
 
   return (
     <>
@@ -40,7 +41,12 @@ export default async function FinanceAdminPage() {
         initialRows={rows}
         referenceDate={new Date().toISOString()}
         canManage={canManage}
-        initialPixKey={initialPixKey}
+        initialPixConfig={{
+          pixKey: pixConfigMap.pix_chave || "ejcaparecida2000@gmail.com",
+          beneficiary: pixConfigMap.pix_beneficiario || "Paróquia Nossa Senhora Aparecida",
+          pixTitle: pixConfigMap.pix_titulo || "Apoie a missão do EJC",
+          pixDescription: pixConfigMap.pix_descricao || "Quem desejar contribuir com a caminhada do grupo pode fazer uma doação pelo PIX.",
+        }}
       />
     </>
   );
