@@ -172,28 +172,39 @@ export function PublicCalendar({
           boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.5)",
         }}
       >
-        {/* Barra de Navegação do Mês */}
+        {/* Barra de Navegação do Mês (100% Centralizada no Celular e Desktop) */}
         <div
+          className="cal-month-nav"
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             marginBottom: "18px",
-            flexWrap: "wrap",
-            gap: "10px",
+            gap: "8px",
           }}
         >
           <button
             type="button"
             className="pdm-btn-secondary pdm-btn-compact"
             onClick={prevMonth}
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            style={{ display: "inline-flex", alignItems: "center", gap: "4px", flexShrink: 0 }}
+            aria-label="Mês anterior"
           >
             <ChevronLeft size={16} />
-            <span>Mês anterior</span>
+            <span className="cal-btn-text">Anterior</span>
           </button>
 
-          <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 800, color: "var(--gold)", letterSpacing: "-0.01em" }}>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: "clamp(1.05rem, 3.8vw, 1.35rem)",
+              fontWeight: 800,
+              color: "var(--gold)",
+              letterSpacing: "-0.01em",
+              textAlign: "center",
+              flex: 1,
+            }}
+          >
             {monthLabel}
           </h3>
 
@@ -201,9 +212,10 @@ export function PublicCalendar({
             type="button"
             className="pdm-btn-secondary pdm-btn-compact"
             onClick={nextMonth}
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            style={{ display: "inline-flex", alignItems: "center", gap: "4px", flexShrink: 0 }}
+            aria-label="Próximo mês"
           >
-            <span>Próximo mês</span>
+            <span className="cal-btn-text">Próximo</span>
             <ChevronRight size={16} />
           </button>
         </div>
@@ -331,7 +343,7 @@ export function PublicCalendar({
                     </div>
 
                     {/* Visualização Desktop: Pills com horário e nome do evento */}
-                    <div className="calendar-desktop-events" style={{ display: "flex", flexDirection: "column", gap: "3px", width: "100%", marginTop: "2px" }}>
+                    <div className="calendar-desktop-events">
                       {cell.events?.slice(0, 2).map((event) => {
                         const col = EVENT_COLORS[event.color || "sky"] || EVENT_COLORS.sky;
                         return (
@@ -369,7 +381,7 @@ export function PublicCalendar({
                     </div>
 
                     {/* Visualização Mobile: Apenas os pontos de luz (dots) coloridos para não poluir */}
-                    <div className="calendar-mobile-dots" style={{ display: "none", gap: "4px", justifyContent: "center", alignItems: "center", marginTop: "4px", flexWrap: "wrap" }}>
+                    <div className="calendar-mobile-dots">
                       {cell.events?.slice(0, 3).map((event) => {
                         const col = EVENT_COLORS[event.color || "sky"] || EVENT_COLORS.sky;
                         return (

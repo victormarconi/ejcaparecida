@@ -1057,8 +1057,72 @@ tr:last-child td { border-bottom: 0; }
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-/* Responsividade do Calendário Público: Celular vs Computador */
+
+/* ==========================================================================
+   Responsividade Mobile (Celular vs Computador)
+   No PC: alinhamento amplo / grid. No Celular: títulos, banners e navegação centralizados.
+   ========================================================================== */
+
+.calendar-desktop-events {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.calendar-mobile-dots {
+  display: none;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 768px) {
+  /* Centralização de Títulos e Textos no Celular */
+  .section-heading {
+    align-items: center !important;
+    text-align: center !important;
+    margin-bottom: 20px !important;
+  }
+  .section-heading h1,
+  .section-heading h2,
+  .section-heading h3 {
+    text-align: center !important;
+  }
+  .section-heading p {
+    text-align: center !important;
+    margin: 0 auto !important;
+  }
+
+  /* Banner e Hero de Inscrições Centralizados no Celular */
+  .campaign-hero {
+    text-align: center !important;
+    padding: 36px 0 !important;
+  }
+  .campaign-copy {
+    text-align: center !important;
+    padding: 24px 18px !important;
+  }
+  .campaign-copy h1 {
+    text-align: center !important;
+  }
+  .campaign-copy p {
+    text-align: center !important;
+    margin: 0 auto !important;
+  }
+  .campaign-banner {
+    margin: 0 auto 20px !important;
+    max-width: 340px !important;
+    min-height: 220px !important;
+  }
+  .campaign-banner img {
+    min-height: 220px !important;
+  }
+
+  /* Calendário Público no Celular: Pontos de Luz (Sem texto espremido) */
   .calendar-desktop-events {
     display: none !important;
   }
@@ -1067,9 +1131,23 @@ tr:last-child td { border-bottom: 0; }
   }
   .public-calendar-day {
     min-height: 48px !important;
-    padding: 4px 3px !important;
+    padding: 6px 2px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Botões do Mês Compactos no Celular */
+  .cal-btn-text {
+    display: none !important;
+  }
+  .cal-month-nav {
+    padding: 0 4px !important;
+  }
+  .cal-month-nav button {
+    padding: 8px 10px !important;
+    min-width: 36px !important;
   }
 }
+
 @media (min-width: 769px) {
   .calendar-desktop-events {
     display: flex !important;
