@@ -65,12 +65,12 @@ export default async function HomePage() {
     </div></section>}
 
     <section className={`section calendar-section${campaign ? "" : " first-section"}`} id="eventos"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Calendário</span>{campaign ? <h2>Calendário público</h2> : <h1>Calendário público</h1>}</div><p>Datas importantes para acompanhar a caminhada do EJC e da comunidade.</p></div>
+      <div className="section-heading">{campaign ? <h2>Calendário</h2> : <h1>Calendário</h1>}<p>Datas importantes para acompanhar a caminhada do EJC e da comunidade.</p></div>
       <PublicCalendar events={serializedEvents} initialMonth={publicDate.format(now)} now={now.toISOString()} />
     </div></section>
 
     {notices.length > 0 && <section className="section alt" id="avisos"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Avisos</span><h2>O que está acontecendo</h2></div><p>Comunicados, campanhas e informações importantes para a comunidade.</p></div>
+      <div className="section-heading"><h2>Avisos & Comunicados</h2><p>Comunicados, campanhas e informações importantes para a comunidade.</p></div>
       <div className="grid two">{notices.map((notice) => <article className="card notice-card" key={notice.id}>
         {notice.assetUrl ? <Image src={notice.assetUrl} width={640} height={480} alt={notice.title} /> : <div className="notice-placeholder" aria-hidden="true" />}
         <div className="notice-content"><span className="eyebrow">{notice.type}</span><h3>{notice.title}</h3><p>{notice.summary}</p>{notice.content && <p>{notice.content}</p>}</div>
@@ -78,7 +78,7 @@ export default async function HomePage() {
     </div></section>}
 
     <section className="section" id="equipe"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Jotado</span><h2>Equipe dirigente</h2></div><p>As pessoas que cuidam da organização, comunicação e caminhada pastoral do EJC.</p></div>
+      <div className="section-heading"><h2>Equipe Dirigente</h2><p>Jovens e casais que cuidam da organização, comunicação e caminhada pastoral do EJC.</p></div>
       <div className="grid team-grid">{team.map((member) => <article className="card team-card" key={member.id}>
         {member.photoUrl ? <Image src={member.photoUrl} width={520} height={520} alt={`Foto de ${member.name}, ${member.role}`} /> : <div className="team-fallback" aria-hidden="true">{initials(member.name)}</div>}
         <div className="team-caption"><strong>{member.name}</strong><span>{member.role}</span></div>
@@ -96,12 +96,12 @@ export default async function HomePage() {
     </div></section>
 
     <section className="section" id="instagram"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Instagram</span><h2>Acompanhe nossas páginas</h2></div><p>Direcionamento rápido para o Instagram do EJC e da Paróquia Nossa Senhora Aparecida.</p></div>
+      <div className="section-heading"><h2>Redes Sociais Oficiais</h2><p>Direcionamento rápido para o Instagram oficial do EJC e da Paróquia Nossa Senhora Aparecida.</p></div>
       <div className="grid two"><a className="card social-card" href="https://www.instagram.com/ejc.aparecida/" target="_blank" rel="noreferrer"><strong>EJC Nossa Senhora Aparecida</strong><span>@ejc.aparecida ↗</span></a><a className="card social-card" href="https://www.instagram.com/paroquiadeaparecida/" target="_blank" rel="noreferrer"><strong>Paróquia Nossa Senhora Aparecida</strong><span>@paroquiadeaparecida ↗</span></a></div>
     </div></section>
 
     <section className="section alt" id="localizacao"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Nossas Comunidades</span><h2>Conheça Nossa Comunidade</h2></div><p>Venha celebrar conosco! Confira os locais, mapas e horários de missas da nossa paróquia e capelas.</p></div>
+      <div className="section-heading"><h2>Conheça Nossa Comunidade</h2><p>Venha celebrar conosco! Confira os locais, mapas e horários de missas da nossa paróquia e capelas.</p></div>
       {locations.length > 0 ? (
         <LocationTabs locations={locations} />
       ) : (

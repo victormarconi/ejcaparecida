@@ -62,8 +62,9 @@ h3 { letter-spacing: -.02em; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 .section { padding: 76px 0; }
 .section.alt { background: var(--surface-soft); }
-.section-heading { display: flex; gap: 28px; justify-content: space-between; align-items: end; margin-bottom: 28px; }
-.section-heading p { max-width: 610px; color: var(--muted); margin-bottom: 4px; }
+.section-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 24px; }
+.section-heading h1, .section-heading h2 { color: var(--gold); font-size: clamp(1.4rem, 2.8vw, 1.85rem); font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; margin: 0; }
+.section-heading p { max-width: 720px; color: var(--muted); font-size: 0.94rem; line-height: 1.5; margin: 0; }
 .grid { display: grid; gap: 18px; }
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
