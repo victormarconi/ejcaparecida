@@ -26,6 +26,18 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   const normalized: Record<string, string | number | boolean> = {};
   for (const field of fields) {
     const raw = submitted[field.id];
+        if (field.type === "multiselect") {
+      const selected = Array.isArray(raw)
+        ? raw.filter((item): item is string => typeof item === "string" && Boolean(field.options?.includes(item)))
+        : typeof raw === "string" && field.options?.includes(raw)
+        ? [raw]
+        : [];
+      if (field.required && selected.length === 0) {
+        return NextResponse.json({ error: `Selecione ao menos uma opção em “${field.label}”.` }, { status: 400 });
+      }
+      normalized[field.id] = selected.join(", ");
+      continue;
+    }
     if (field.type === "checkbox") {
       const checked = raw === true;
       if (field.required && !checked) return NextResponse.json({ error: `Confirme “${field.label}”.` }, { status: 400 });

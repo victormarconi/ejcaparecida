@@ -65,6 +65,151 @@ function parseFields(json: string): DynamicFormField[] {
   }
 }
 
+function OptionsEditor({
+  options = [],
+  onChange,
+  isRadio,
+  isMulti,
+}: {
+  options: string[];
+  onChange: (options: string[]) => void;
+  isRadio?: boolean;
+  isMulti?: boolean;
+}) {
+  const [inputValue, setInputValue] = useState("");
+
+  function addOptions(rawText: string) {
+    if (!rawText.trim()) return;
+    const splitItems = rawText.split(",").map((s) => s.trim()).filter(Boolean);
+    const existing = new Set(options);
+    const updated = [...options];
+    for (const item of splitItems) {
+      if (!existing.has(item)) {
+        updated.push(item);
+        existing.add(item);
+      }
+    }
+    onChange(updated);
+    setInputValue("");
+  }
+
+  function removeOption(idx: number) {
+    onChange(options.filter((_, i) => i !== idx));
+  }
+
+  return (
+    <div
+      style={{
+        background: "rgba(0, 0, 0, 0.35)",
+        border: "1px dashed rgba(56, 189, 248, 0.3)",
+        borderRadius: "10px",
+        padding: "12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+        <span style={{ fontSize: "0.78rem", color: "#38bdf8", fontWeight: 700 }}>
+          {isRadio
+            ? "Opções de escolha única (Ex: Sim ou Não):"
+            : isMulti
+            ? "Opções para múltipla escolha (participante pode marcar várias):"
+            : "Opções da lista (dropdown):"}
+        </span>
+        {isRadio && (
+          <button
+            type="button"
+            onClick={() => onChange(["Sim", "Não"])}
+            className="pdm-btn-secondary pdm-btn-small"
+            style={{ fontSize: "0.68rem", padding: "1px 8px" }}
+          >
+            Redefinir Sim / Não
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: "8px" }}>
+        <input
+          placeholder="Digite o nome da opção e clique em + Adicionar (ou cole separadas por vírgula)..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addOptions(inputValue);
+            }
+          }}
+          style={{
+            flex: 1,
+            height: "36px",
+            fontSize: "0.84rem",
+            padding: "0 10px",
+            background: "#060910",
+            border: "1px solid rgba(255, 255, 255, 0.14)",
+            borderRadius: "6px",
+            color: "#ffffff",
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => addOptions(inputValue)}
+          className="pdm-btn-primary pdm-btn-small"
+          style={{ height: "36px", padding: "0 14px", fontSize: "0.80rem" }}
+        >
+          + Adicionar
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", minHeight: "26px" }}>
+        {options.length === 0 ? (
+          <span style={{ fontSize: "0.74rem", color: "#64748b" }}>
+            Nenhuma alternativa cadastrada. Digite acima e clique em <strong>+ Adicionar</strong>.
+          </span>
+        ) : (
+          options.map((opt, i) => (
+            <span
+              key={i}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "0.78rem",
+                background: "rgba(56, 189, 248, 0.15)",
+                border: "1px solid rgba(56, 189, 248, 0.35)",
+                color: "#38bdf8",
+                padding: "3px 10px",
+                borderRadius: "14px",
+                fontWeight: 600,
+              }}
+            >
+              <span>{opt}</span>
+              <button
+                type="button"
+                onClick={() => removeOption(i)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#f87171",
+                  cursor: "pointer",
+                  padding: 0,
+                  fontSize: "0.85rem",
+                  lineHeight: 1,
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+                title={`Remover "${opt}"`}
+              >
+                ✕
+              </button>
+            </span>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminFormCampaign[] }) {
   const [campaigns, setCampaigns] = useState<AdminFormCampaign[]>(initialCampaigns);
   const [modalOpen, setModalOpen] = useState(false);
@@ -776,7 +921,7 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                         const patch: Partial<DynamicFormField> = { type: t };
                         if (t === "radio" && (!field.options || !field.options.length)) {
                           patch.options = ["Sim", "Não"];
-                        } else if (t === "select" && (!field.options || !field.options.length)) {
+                        } else if ((t === "select" || t === "multiselect") && (!field.options || !field.options.length)) {
                           patch.options = ["Opção 1", "Opção 2"];
                         }
                         updateField(field.id, patch);
@@ -796,8 +941,9 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                       <option value="text">Texto curto</option>
                       <option value="number">Número</option>
                       <option value="select">Lista de opções (Dropdown)</option>
+                      <option value="multiselect">Múltipla escolha (Marcar várias)</option>
                       <option value="radio">Sim ou Não (Escolha única)</option>
-                      <option value="checkbox">Caixa de marcar</option>
+                      <option value="checkbox">Caixa de marcar única</option>
                       <option value="file">Anexo (Foto ou PDF)</option>
                     </select>
 
@@ -847,77 +993,14 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                     </button>
                   </div>
 
-                  {/* CONFIGURADOR DE OPÇÕES PARA DROPDOWN OU RADIO */}
-                  {(field.type === "select" || field.type === "radio") && (
-                    <div
-                      style={{
-                        background: "rgba(0, 0, 0, 0.35)",
-                        border: "1px dashed rgba(56, 189, 248, 0.25)",
-                        borderRadius: "8px",
-                        padding: "10px 12px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "6px",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: "0.76rem", color: "#38bdf8", fontWeight: 700 }}>
-                          Opções da lista (digite separadas por vírgula):
-                        </span>
-                        {field.type === "radio" && (
-                          <div style={{ display: "flex", gap: "4px" }}>
-                            <button
-                              type="button"
-                              onClick={() => updateField(field.id, { options: ["Sim", "Não"] })}
-                              className="pdm-btn-secondary pdm-btn-small"
-                              style={{ fontSize: "0.68rem", padding: "1px 6px" }}
-                            >
-                              Sim / Não
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <input
-                        placeholder="Ex: Círculo Vermelho, Círculo Azul, Círculo Amarelo, Círculo Verde"
-                        value={field.options?.join(", ") || ""}
-                        onChange={(e) => {
-                          const opts = e.target.value
-                            .split(",")
-                            .map((o) => o.trim())
-                            .filter(Boolean);
-                          updateField(field.id, { options: opts });
-                        }}
-                        style={{
-                          fontSize: "0.82rem",
-                          padding: "6px 10px",
-                          background: "#060910",
-                          border: "1px solid rgba(255, 255, 255, 0.12)",
-                          borderRadius: "6px",
-                          color: "#ffffff",
-                        }}
-                      />
-
-                      {field.options && field.options.length > 0 && (
-                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginTop: "2px" }}>
-                          {field.options.map((opt, i) => (
-                            <span
-                              key={i}
-                              style={{
-                                fontSize: "0.72rem",
-                                background: "rgba(56, 189, 248, 0.15)",
-                                border: "1px solid rgba(56, 189, 248, 0.3)",
-                                color: "#38bdf8",
-                                padding: "2px 8px",
-                                borderRadius: "12px",
-                              }}
-                            >
-                              {opt}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  {/* CONFIGURADOR DE OPÇÕES PARA DROPDOWN, MULTISELECT OU RADIO */}
+                  {(field.type === "select" || field.type === "multiselect" || field.type === "radio") && (
+                    <OptionsEditor
+                      options={field.options || []}
+                      onChange={(newOpts) => updateField(field.id, { options: newOpts })}
+                      isRadio={field.type === "radio"}
+                      isMulti={field.type === "multiselect"}
+                    />
                   )}
 
                   {field.type === "file" && (

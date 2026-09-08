@@ -25,7 +25,7 @@ const campaignSchema = z.object({
   value.fields.forEach((field, index) => {
     if (ids.has(field.id)) context.addIssue({ code: "custom", path: ["fields", index, "id"], message: "Cada campo precisa ter um identificador único." });
     ids.add(field.id);
-    if (field.type === "select" && !field.options?.length) context.addIssue({ code: "custom", path: ["fields", index, "options"], message: `Inclua ao menos uma opção em “${field.label}”.` });
+    if ((field.type === "select" || field.type === "multiselect") && !field.options?.length) context.addIssue({ code: "custom", path: ["fields", index, "options"], message: `Inclua ao menos uma opção em “${field.label}”.` });
   });
 });
 
@@ -41,7 +41,7 @@ const campaignData = (value: z.infer<typeof campaignSchema>) => ({
     label: field.label,
     type: field.type,
     required: field.required,
-    options: (field.type === "select" || field.type === "radio")
+    options: (field.type === "select" || field.type === "multiselect" || field.type === "radio")
       ? (field.options && field.options.length ? field.options : ["Sim", "Não"])
       : undefined,
   }))),

@@ -17,7 +17,7 @@ export function CampaignForm({
   buttonText?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [data, setData] = useState<Record<string, string | boolean>>({});
+  const [data, setData] = useState<Record<string, string | boolean | string[]>>({});
   const [status, setStatus] = useState<"idle" | "busy" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [uploadingField, setUploadingField] = useState<string | null>(null);
@@ -159,6 +159,64 @@ export function CampaignForm({
                           {field.required ? " *" : ""}
                         </span>
                       </label>
+                    );
+                  }
+
+                                    if (field.type === "multiselect") {
+                    const options = field.options && field.options.length ? field.options : ["Opção 1", "Opção 2"];
+                    const rawVal = data[field.id];
+                    const currentSelected: string[] = Array.isArray(rawVal)
+                      ? rawVal
+                      : typeof rawVal === "string"
+                      ? rawVal.split(", ").filter(Boolean)
+                      : [];
+
+                    return (
+                      <div className="field" key={field.id} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <span>
+                          {field.label}
+                          {field.required ? " *" : ""}
+                          <small style={{ color: "var(--muted)", marginLeft: "6px", fontSize: "0.78rem" }}>
+                            (selecione uma ou mais opções)
+                          </small>
+                        </span>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          {options.map((opt) => {
+                            const isChecked = currentSelected.includes(opt);
+                            return (
+                              <label
+                                key={opt}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  padding: "8px 14px",
+                                  borderRadius: "10px",
+                                  background: isChecked ? "rgba(56, 189, 248, 0.15)" : "rgba(255, 255, 255, 0.04)",
+                                  border: `1px solid ${isChecked ? "var(--brand)" : "rgba(255, 255, 255, 0.12)"}`,
+                                  cursor: "pointer",
+                                  fontSize: "0.88rem",
+                                  color: isChecked ? "#ffffff" : "var(--muted)",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    const next = e.target.checked
+                                      ? [...currentSelected, opt]
+                                      : currentSelected.filter((item) => item !== opt);
+                                    setData({ ...data, [field.id]: next });
+                                  }}
+                                  style={{ accentColor: "var(--brand)" }}
+                                />
+                                <span>{opt}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   }
 
