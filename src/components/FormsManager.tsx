@@ -479,54 +479,39 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
             </label>
           </div>
 
-          {/* VALIDADE E BANNER */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
+          {/* VALIDADE E BANNER ALINHADOS */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px", alignItems: "start" }}>
             {/* DATA DE TÉRMINO */}
-            <div className="field">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                <span>Data de Término / Validade</span>
-                {expiresAt && (
-                  <button
-                    type="button"
-                    onClick={() => setExpiresAt("")}
-                    className="pdm-btn-secondary pdm-btn-small"
-                    style={{ fontSize: "0.72rem", padding: "1px 6px", color: "#f87171" }}
-                    title="Remover data limite"
-                  >
-                    ✕ Sem Limite
-                  </button>
-                )}
-              </div>
-
-              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <div className="field" style={{ margin: 0 }}>
+              <span style={{ display: "block", marginBottom: "6px", fontSize: "0.84rem", fontWeight: 600, color: "#cbd5e1" }}>
+                Data de Término / Validade
+              </span>
+              <div style={{ display: "flex", gap: "6px", alignItems: "center", height: "40px" }}>
                 <input
                   type="datetime-local"
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, height: "40px", boxSizing: "border-box" }}
                 />
                 {expiresAt && (
                   <button
                     type="button"
                     onClick={() => setExpiresAt("")}
-                    className="pdm-btn-secondary pdm-btn-compact"
-                    style={{ padding: "8px 12px", color: "#f87171" }}
-                    title="Limpar data limite"
+                    className="pdm-btn-secondary"
+                    style={{ height: "40px", padding: "0 12px", color: "#f87171", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    title="Remover data limite"
                   >
                     <X size={15} />
                   </button>
                 )}
               </div>
-              {!expiresAt && (
-                <small style={{ color: "#64748b", fontSize: "0.72rem", marginTop: "3px", display: "block" }}>
-                  Sem limite — o formulário ficará disponível continuamente.
-                </small>
-              )}
             </div>
 
             {/* UPLOAD DE BANNER */}
-            <div className="field">
-              <span style={{ display: "block", marginBottom: "4px" }}>Imagem do Banner (Opcional)</span>
+            <div className="field" style={{ margin: 0 }}>
+              <span style={{ display: "block", marginBottom: "6px", fontSize: "0.84rem", fontWeight: 600, color: "#cbd5e1" }}>
+                Imagem do Banner (Opcional)
+              </span>
               <input
                 ref={bannerFileInputRef}
                 type="file"
@@ -535,84 +520,94 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                 onChange={handleBannerUpload}
               />
 
-              {bannerUrl ? (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "8px 10px",
-                    borderRadius: "10px",
-                    background: "#090e17",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={bannerUrl}
-                    alt="Banner preview"
-                    style={{ width: "54px", height: "40px", objectFit: "cover", borderRadius: "6px" }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "0.78rem", color: "#e2e8f0", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      Banner anexado
+              <div style={{ height: "40px" }}>
+                {bannerUrl ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "0 10px",
+                      height: "40px",
+                      borderRadius: "8px",
+                      background: "#090e17",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={bannerUrl}
+                      alt="Banner preview"
+                      style={{ width: "42px", height: "26px", objectFit: "cover", borderRadius: "4px" }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "0.78rem", color: "#e2e8f0", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        Banner anexado
+                      </div>
                     </div>
-                    <small style={{ color: "#64748b", fontSize: "0.70rem" }}>JPG/PNG/WebP</small>
+                    <button
+                      type="button"
+                      className="pdm-btn-danger pdm-btn-small"
+                      onClick={() => setBannerUrl("")}
+                      title="Remover banner"
+                      style={{ padding: "3px 6px" }}
+                    >
+                      <X size={12} />
+                    </button>
                   </div>
+                ) : (
                   <button
                     type="button"
-                    className="pdm-btn-danger pdm-btn-small"
-                    onClick={() => setBannerUrl("")}
-                    title="Remover banner"
+                    className="pdm-btn-secondary"
+                    disabled={bannerUploading}
+                    onClick={() => bannerFileInputRef.current?.click()}
+                    style={{
+                      width: "100%",
+                      height: "40px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      background: "#090e17",
+                      border: "1px dashed rgba(255, 255, 255, 0.2)",
+                      borderRadius: "8px",
+                      boxSizing: "border-box",
+                      fontSize: "0.82rem",
+                    }}
                   >
-                    <X size={13} />
+                    <Upload size={14} />
+                    <span>{bannerUploading ? "Enviando imagem..." : "Upload do Banner (JPG/PNG)"}</span>
                   </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="pdm-btn-secondary"
-                  disabled={bannerUploading}
-                  onClick={() => bannerFileInputRef.current?.click()}
-                  style={{
-                    width: "100%",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    minHeight: "42px",
-                    background: "#090e17",
-                    border: "1px dashed rgba(255, 255, 255, 0.18)",
-                  }}
-                >
-                  <Upload size={14} />
-                  <span>{bannerUploading ? "Enviando imagem..." : "Upload de Imagem (Banner)"}</span>
-                </button>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
-          {/* TOGGLE ATIVO NO TOPO DO SITE */}
+          {/* STATUS DO FORMULÁRIO */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "10px",
-              padding: "12px 14px",
-              borderRadius: "12px",
+              justifyContent: "space-between",
+              padding: "10px 14px",
+              borderRadius: "10px",
               background: "#090e17",
               border: "1px solid rgba(255, 255, 255, 0.10)",
             }}
           >
-            <input
-              id="activeCampaign"
-              type="checkbox"
-              checked={active}
-              onChange={(e) => setActive(e.target.checked)}
-              style={{ width: "18px", height: "18px", accentColor: "var(--brand)", cursor: "pointer" }}
-            />
-            <label htmlFor="activeCampaign" style={{ margin: 0, cursor: "pointer", fontSize: "0.88rem", color: "#f8fafc" }}>
-              <strong>Destacar e ativar formulário no topo do site oficial</strong>
+            <label htmlFor="activeCampaign" style={{ margin: 0, cursor: "pointer", fontSize: "0.86rem", color: "#f8fafc", fontWeight: 600 }}>
+              Status do Formulário
+            </label>
+            <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", margin: 0, fontSize: "0.84rem", color: active ? "#38bdf8" : "#94a3b8" }}>
+              <input
+                id="activeCampaign"
+                type="checkbox"
+                checked={active}
+                onChange={(e) => setActive(e.target.checked)}
+                style={{ width: "16px", height: "16px", accentColor: "var(--brand)", cursor: "pointer" }}
+              />
+              <span>{active ? "Ativo no site oficial" : "Desativado / Rascunho"}</span>
             </label>
           </div>
 
@@ -650,20 +645,24 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "auto 1.3fr 1fr auto auto",
+                      gridTemplateColumns: "38px 1.4fr 1.1fr auto 38px",
                       gap: "10px",
                       alignItems: "center",
                     }}
                   >
                     <span
                       style={{
-                        fontSize: "0.72rem",
+                        height: "38px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "0.76rem",
                         fontWeight: 700,
                         color: "#38bdf8",
                         background: "rgba(56, 189, 248, 0.12)",
                         border: "1px solid rgba(56, 189, 248, 0.25)",
-                        padding: "4px 8px",
-                        borderRadius: "6px",
+                        borderRadius: "8px",
+                        boxSizing: "border-box",
                       }}
                     >
                       #{idx + 1}
@@ -674,12 +673,14 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                       placeholder="Nome da pergunta (ex: Nome Completo)"
                       onChange={(e) => updateField(field.id, { label: e.target.value })}
                       style={{
+                        height: "38px",
                         fontSize: "0.85rem",
-                        padding: "8px 12px",
+                        padding: "0 12px",
                         background: "#060910",
                         border: "1px solid rgba(255, 255, 255, 0.14)",
                         borderRadius: "8px",
                         color: "#ffffff",
+                        boxSizing: "border-box",
                       }}
                     />
 
@@ -696,33 +697,41 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                         updateField(field.id, patch);
                       }}
                       style={{
+                        height: "38px",
                         fontSize: "0.84rem",
-                        padding: "8px 10px",
+                        padding: "0 10px",
                         background: "#060910",
                         border: "1px solid rgba(56, 189, 248, 0.3)",
                         borderRadius: "8px",
                         color: "#38bdf8",
                         fontWeight: 600,
+                        boxSizing: "border-box",
                       }}
                     >
                       <option value="text">Texto curto</option>
                       <option value="number">Número</option>
                       <option value="select">Lista de opções (Dropdown)</option>
                       <option value="radio">Sim ou Não (Escolha única)</option>
-                      <option value="checkbox">Caixa de marcar (Confirmação)</option>
+                      <option value="checkbox">Caixa de marcar</option>
                       <option value="file">Anexo (Foto ou PDF)</option>
                     </select>
 
                     <label
                       style={{
-                        display: "flex",
+                        height: "38px",
+                        display: "inline-flex",
                         alignItems: "center",
                         gap: "6px",
                         fontSize: "0.78rem",
-                        color: "#94a3b8",
+                        color: "#cbd5e1",
                         cursor: "pointer",
                         margin: 0,
                         whiteSpace: "nowrap",
+                        padding: "0 10px",
+                        background: "rgba(255, 255, 255, 0.04)",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        borderRadius: "8px",
+                        boxSizing: "border-box",
                       }}
                     >
                       <input
@@ -738,10 +747,18 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                       type="button"
                       onClick={() => removeField(field.id)}
                       className="pdm-btn-danger pdm-btn-small"
-                      style={{ padding: "6px 8px" }}
+                      style={{
+                        height: "38px",
+                        width: "38px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        boxSizing: "border-box",
+                      }}
                       title="Excluir campo"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
 
