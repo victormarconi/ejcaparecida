@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
   Calendar,
   FileText,
   DollarSign,
@@ -31,7 +30,6 @@ export function AppShell({
     {
       title: "Principal",
       items: [
-        { label: "Visão Geral", href: "/admin", icon: LayoutDashboard },
         { label: "Calendário", href: "/admin/calendario", icon: Calendar },
         { label: "Documentos", href: "/membros/documentos", icon: FileText },
       ],
@@ -55,7 +53,7 @@ export function AppShell({
       <aside className="ejc-sidebar">
         {/* Brand */}
         <div className="ejc-sidebar-brand">
-          <Link href="/admin" className="brand-link">
+          <Link href="/admin/calendario" className="brand-link">
             <Image
               src="/uploads/logo-ejc-white.png"
               width={34}

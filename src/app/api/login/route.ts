@@ -30,12 +30,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/login?erro=1&callbackUrl=${encodeURIComponent(errCallback)}`, 303);
   }
 
-  // Redirecionamento padrão: Visão Geral (/admin) para admins
+  // Redirecionamento inteligente: equipe -> /admin/calendario | financas -> /admin/financas
   let target = "/membros";
   if (callbackUrl.startsWith("/") && callbackUrl !== "/login") {
     target = callbackUrl;
   } else if (user.role === "ADMIN") {
-    target = "/admin";
+    if (user.username === "financas") {
+      target = "/admin/financas";
+    } else {
+      target = "/admin/calendario";
+    }
   }
 
   const response = type.includes("application/json")

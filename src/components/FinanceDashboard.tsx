@@ -552,45 +552,77 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     {view === "cash" && <>
 
       <section className="finance-history">
-        <div className="section-heading compact" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-          <div>
-            <span className="eyebrow">Histórico Recente</span>
-            <h2>Últimos 3 Meses</h2>
+        {/* Título unificado em uma frase só com tamanho equilibrado */}
+        <div style={{ marginBottom: "12px" }}>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: "1.18rem",
+              fontWeight: 700,
+              color: "#f8fafc",
+              letterSpacing: "-0.01em",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flexWrap: "wrap",
+            }}
+          >
+            <span>Histórico Recente</span>
+            <span style={{ color: "var(--muted)", fontWeight: 400 }}>—</span>
+            <span style={{ color: "var(--gold)", fontWeight: 700 }}>Últimos 3 Meses</span>
+          </h3>
+        </div>
+
+        {/* Linha dos meses com botão de histórico completo alinhado no fim da direita */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "10px",
+            margin: "10px 0 16px",
+          }}
+        >
+          <div className="month-tabs" role="tablist" aria-label="Mês do histórico" style={{ margin: 0 }}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedPeriod === "recent3"}
+              onClick={() => setSelectedPeriod("recent3")}
+            >
+              Últimos 3 Meses ({rows.filter(r => recentKeys.has(monthKey(r.occurredAt))).length})
+            </button>
+            {recentMonths.map((month) => {
+              const count = rows.filter((r) => monthKey(r.occurredAt) === month.key).length;
+              return (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={selectedPeriod === month.key}
+                  onClick={() => setSelectedPeriod(month.key)}
+                  key={month.key}
+                >
+                  {month.label} ({count})
+                </button>
+              );
+            })}
           </div>
+
           <button
             type="button"
             className="pdm-btn-secondary pdm-btn-compact"
             onClick={() => setHistoryModalOpen(true)}
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              marginLeft: "auto",
+            }}
           >
-            <FolderArchive size={15} />
+            <FolderArchive size={14} />
             <span>Ver Histórico Completo ({rows.length})</span>
           </button>
-        </div>
-
-        <div className="month-tabs" role="tablist" aria-label="Mês do histórico" style={{ margin: "14px 0" }}>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={selectedPeriod === "recent3"}
-            onClick={() => setSelectedPeriod("recent3")}
-          >
-            Últimos 3 Meses ({rows.filter(r => recentKeys.has(monthKey(r.occurredAt))).length})
-          </button>
-          {recentMonths.map((month) => {
-            const count = rows.filter((r) => monthKey(r.occurredAt) === month.key).length;
-            return (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={selectedPeriod === month.key}
-                onClick={() => setSelectedPeriod(month.key)}
-                key={month.key}
-              >
-                {month.label} ({count})
-              </button>
-            );
-          })}
         </div>
         <div className="card table-card compact-table"><table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Comprovante</th>{canManage && <th>Ações</th>}</tr></thead><tbody>{filteredRows.map((row) => <tr key={row.id}>
           <td>{shortDate(row.occurredAt)}</td><td>{row.category || "—"}</td><td>
