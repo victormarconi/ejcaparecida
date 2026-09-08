@@ -993,12 +993,11 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                     </button>
                   </div>
 
-                  {/* CONFIGURADOR DE OPÇÕES PARA DROPDOWN, MULTISELECT OU RADIO */}
-                  {(field.type === "select" || field.type === "multiselect" || field.type === "radio") && (
+                  {/* CONFIGURADOR DE OPÇÕES PARA DROPDOWN OU MULTISELECT (Sim/Não não abre caixa) */}
+                  {(field.type === "select" || field.type === "multiselect") && (
                     <OptionsEditor
                       options={field.options || []}
                       onChange={(newOpts) => updateField(field.id, { options: newOpts })}
-                      isRadio={field.type === "radio"}
                       isMulti={field.type === "multiselect"}
                     />
                   )}
@@ -1015,6 +1014,119 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                       }}
                     >
                       📎 Permite envio de fotos (JPEG, PNG) ou documentos em PDF (ideal para comprovante PIX).
+                    </div>
+                  )}
+
+                  {/* REGRA CONDICIONAL (Mostrar apenas se a pergunta anterior for PIX, Sim, etc) */}
+                  {idx > 0 && (
+                    <div style={{ marginTop: "4px" }}>
+                      {field.dependsOn ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "8px 12px",
+                            background: "rgba(56, 189, 248, 0.08)",
+                            border: "1px solid rgba(56, 189, 248, 0.25)",
+                            borderRadius: "8px",
+                            fontSize: "0.80rem",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span style={{ color: "#38bdf8", fontWeight: 700 }}>
+                            ⚡ Mostrar apenas se:
+                          </span>
+                          <select
+                            value={field.dependsOn.fieldId}
+                            onChange={(e) => {
+                              const parentId = e.target.value;
+                              const parent = fields.slice(0, idx).find((p) => p.id === parentId);
+                              const defaultVal =
+                                parent?.type === "radio"
+                                  ? "Sim"
+                                  : parent?.options?.[0] || "PIX";
+                              updateField(field.id, {
+                                dependsOn: { fieldId: parentId, value: defaultVal },
+                              });
+                            }}
+                            style={{
+                              background: "#060910",
+                              border: "1px solid rgba(56, 189, 248, 0.3)",
+                              borderRadius: "6px",
+                              color: "#ffffff",
+                              padding: "4px 8px",
+                              fontSize: "0.78rem",
+                            }}
+                          >
+                            {fields.slice(0, idx).map((p, pIdx) => (
+                              <option key={p.id} value={p.id}>
+                                #{pIdx + 1} {p.label}
+                              </option>
+                            ))}
+                          </select>
+                          <span style={{ color: "var(--muted)" }}>for igual a:</span>
+                          <input
+                            placeholder="Ex: PIX ou Sim"
+                            value={field.dependsOn.value}
+                            onChange={(e) =>
+                              updateField(field.id, {
+                                dependsOn: {
+                                  fieldId: field.dependsOn!.fieldId,
+                                  value: e.target.value,
+                                },
+                              })
+                            }
+                            style={{
+                              width: "120px",
+                              background: "#060910",
+                              border: "1px solid rgba(56, 189, 248, 0.3)",
+                              borderRadius: "6px",
+                              color: "#ffffff",
+                              padding: "4px 8px",
+                              fontSize: "0.78rem",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateField(field.id, { dependsOn: undefined })}
+                            className="pdm-btn-secondary pdm-btn-small"
+                            style={{ fontSize: "0.70rem", padding: "2px 8px", color: "#f87171", marginLeft: "auto" }}
+                            title="Remover condição"
+                          >
+                            ✕ Remover condição
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const parent = fields[idx - 1];
+                            const defaultVal =
+                              parent.type === "radio"
+                                ? "Sim"
+                                : parent.options?.[0] || "PIX";
+                            updateField(field.id, {
+                              dependsOn: { fieldId: parent.id, value: defaultVal },
+                            });
+                          }}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "#64748b",
+                            fontSize: "0.74rem",
+                            cursor: "pointer",
+                            padding: "2px 4px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#38bdf8")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "#64748b")}
+                        >
+                          <span>+ Adicionar condição (ex: mostrar esta pergunta apenas se anterior for PIX ou Sim)</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

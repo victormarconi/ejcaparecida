@@ -25,6 +25,18 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   const submitted = body.data as Record<string, unknown>;
   const normalized: Record<string, string | number | boolean> = {};
   for (const field of fields) {
+    if (field.dependsOn) {
+      const parentVal = submitted[field.dependsOn.fieldId];
+      const matches = Array.isArray(parentVal)
+        ? parentVal.includes(field.dependsOn.value)
+        : typeof parentVal === "boolean"
+        ? (field.dependsOn.value.toLowerCase() === "sim" ? parentVal === true : parentVal === false)
+        : String(parentVal ?? "").trim().toLowerCase() === field.dependsOn.value.trim().toLowerCase();
+      if (!matches) {
+        // Campo oculto pela condicional — ignora validação e não obriga preenchimento
+        continue;
+      }
+    }
     const raw = submitted[field.id];
         if (field.type === "multiselect") {
       const selected = Array.isArray(raw)

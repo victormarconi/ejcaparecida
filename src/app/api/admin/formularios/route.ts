@@ -11,6 +11,10 @@ const fieldSchema = z.object({
   type: z.enum(FORM_FIELD_TYPES),
   required: z.boolean().default(false),
   options: z.array(z.string().trim().min(1).max(160)).max(50).optional(),
+  dependsOn: z.object({
+    fieldId: z.string().trim().min(1),
+    value: z.string().trim().min(1),
+  }).optional().nullable(),
 });
 
 const campaignSchema = z.object({
@@ -43,6 +47,9 @@ const campaignData = (value: z.infer<typeof campaignSchema>) => ({
     required: field.required,
     options: (field.type === "select" || field.type === "multiselect" || field.type === "radio")
       ? (field.options && field.options.length ? field.options : ["Sim", "Não"])
+      : undefined,
+    dependsOn: field.dependsOn && field.dependsOn.fieldId && field.dependsOn.value
+      ? { fieldId: field.dependsOn.fieldId, value: field.dependsOn.value }
       : undefined,
   }))),
 });

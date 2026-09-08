@@ -143,6 +143,17 @@ export function CampaignForm({
                 </div>
 
                 {fields.map((field) => {
+                  if (field.dependsOn) {
+                    const parentVal = data[field.dependsOn.fieldId];
+                    const matches = Array.isArray(parentVal)
+                      ? parentVal.includes(field.dependsOn.value)
+                      : typeof parentVal === "boolean"
+                      ? (field.dependsOn.value.toLowerCase() === "sim" ? parentVal === true : parentVal === false)
+                      : String(parentVal ?? "").trim().toLowerCase() === field.dependsOn.value.trim().toLowerCase();
+                    if (!matches) {
+                      return null;
+                    }
+                  }
                   if (field.type === "checkbox") {
                     return (
                       <label className="checkbox-field" key={field.id}>
