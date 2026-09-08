@@ -19,6 +19,7 @@ export function PdmModal({
   maxWidth?: string;
 }) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -39,8 +40,6 @@ export function PdmModal({
   }, [open, onClose]);
 
   if (!open) return null;
-
-  const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   return (
     <div
@@ -123,7 +122,6 @@ export function PdmConfirmModal({
             display: "flex",
             justifyContent: "flex-end",
             gap: "10px",
-            marginTop: "6px",
           }}
         >
           <button
@@ -140,7 +138,7 @@ export function PdmConfirmModal({
             onClick={onConfirm}
             disabled={busy}
           >
-            {busy ? "Processando..." : confirmLabel}
+            {busy ? "Excluindo..." : confirmLabel}
           </button>
         </div>
       </div>
