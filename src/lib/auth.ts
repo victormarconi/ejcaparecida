@@ -5,9 +5,11 @@ import type { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 const COOKIE_NAME = "ejc_session";
-const SESSION_SECONDS = 60 * 60 * 8;
+// Sessão padrão: 8 horas | Com "Lembrar de mim": 60 dias
+export const DEFAULT_SESSION_SECONDS = 60 * 60 * 8;
+export const REMEMBER_SESSION_SECONDS = 60 * 60 * 24 * 60; // 60 dias
 
-type SessionPayload = { userId: string; expiresAt: number };
+type SessionPayload = { userId: string; expiresAt: number; remember?: boolean };
 
 function secret() {
   const value = process.env.SESSION_SECRET || "";
@@ -23,8 +25,9 @@ function sign(payload: string) {
   return createHmac("sha256", secret()).update(payload).digest("base64url");
 }
 
-export function createSessionToken(userId: string) {
-  const payload = encode(JSON.stringify({ userId, expiresAt: Date.now() + SESSION_SECONDS * 1000 } satisfies SessionPayload));
+export function createSessionToken(userId: string, remember = true) {
+  const maxAge = remember ? REMEMBER_SESSION_SECONDS : DEFAULT_SESSION_SECONDS;
+  const payload = encode(JSON.stringify({ userId, expiresAt: Date.now() + maxAge * 1000, remember } satisfies SessionPayload));
   return `${payload}.${sign(payload)}`;
 }
 
@@ -45,18 +48,15 @@ export function verifySessionToken(token?: string | null): SessionPayload | null
   }
 }
 
-export function setSessionCookie(response: NextResponse, userId: string) {
-  response.cookies.set(COOKIE_NAME, createSessionToken(userId), {
+export function setSessionCookie(response: NextResponse, userId: string, remember = true) {
+  const maxAge = remember ? REMEMBER_SESSION_SECONDS : DEFAULT_SESSION_SECONDS;
+  response.cookies.set(COOKIE_NAME, createSessionToken(userId, remember), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: SESSION_SECONDS,
+    maxAge: maxAge,
   });
-}
-
-export function clearSessionCookie(response: NextResponse) {
-  response.cookies.set(COOKIE_NAME, "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 0 });
 }
 
 export async function currentUser() {
@@ -71,7 +71,7 @@ export async function currentUser() {
 
 export async function requireUser(admin = false) {
   const user = await currentUser();
-  if (!user) redirect(`/login?callbackUrl=${admin ? "/admin" : "/membros"}`);
+  if (!user) redirect(`/login?callbackUrl=${admin ? "/admin/financas" : "/membros"}`);
   if (admin && user.role !== "ADMIN") redirect("/membros");
   return user;
 }
@@ -83,3 +83,13 @@ export async function requestUser(token?: string | null) {
 }
 
 export { COOKIE_NAME };
+
+export function clearSessionCookie(response: NextResponse) {
+  response.cookies.set(COOKIE_NAME, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+}

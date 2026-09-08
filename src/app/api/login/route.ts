@@ -9,14 +9,16 @@ export async function POST(request: NextRequest) {
   const identifier = String(input.identifier || input.username || input.email || "").trim().toLowerCase();
   const password = String(input.password || "");
   const callbackUrl = String(input.callbackUrl || "/membros");
+  const remember = input.remember === true || input.remember === "true" || input.remember === "on" || input.remember === "1";
+
   const user = identifier ? await prisma.user.findFirst({ where: { active: true, OR: [{ email: identifier }, { username: identifier }] } }) : null;
   const valid = user ? await bcrypt.compare(password, user.passwordHash) : false;
   if (!user || !valid) {
     if (type.includes("application/json")) return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
     return NextResponse.redirect(new URL(`/login?erro=1&callbackUrl=${encodeURIComponent(callbackUrl.startsWith("/") ? callbackUrl : "/membros")}`, request.url), 303);
   }
-  const target = callbackUrl.startsWith("/") ? callbackUrl : user.role === "ADMIN" ? "/admin" : "/membros";
+  const target = callbackUrl.startsWith("/") ? callbackUrl : user.role === "ADMIN" ? "/admin/financas" : "/membros";
   const response = type.includes("application/json") ? NextResponse.json({ ok: true, role: user.role }) : NextResponse.redirect(new URL(target, request.url), 303);
-  setSessionCookie(response, user.id);
+  setSessionCookie(response, user.id, remember);
   return response;
 }
