@@ -70,6 +70,7 @@ function toLocalInput(iso?: string | null) {
 
 const COLOR_OPTIONS = [
   { id: "sky", label: "Azul Padrão", bg: "rgba(2, 132, 199, 0.15)", border: "rgba(2, 132, 199, 0.3)", text: "#38bdf8", dot: "#38bdf8" },
+  { id: "paroquia", label: "Evento da Paróquia (Roxo / Solene)", bg: "rgba(168, 85, 247, 0.18)", border: "rgba(168, 85, 247, 0.4)", text: "#c084fc", dot: "#c084fc" },
   { id: "emerald", label: "Pastoral", bg: "rgba(16, 185, 129, 0.15)", border: "rgba(16, 185, 129, 0.35)", text: "#34d399", dot: "#34d399" },
   { id: "gold", label: "Vendas", bg: "rgba(234, 179, 8, 0.15)", border: "rgba(234, 179, 8, 0.35)", text: "#facc15", dot: "#facc15" },
   { id: "amber", label: "Eventos no Geral", bg: "rgba(245, 158, 11, 0.15)", border: "rgba(245, 158, 11, 0.35)", text: "#fbbf24", dot: "#fbbf24" },
