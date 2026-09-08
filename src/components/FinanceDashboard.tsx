@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { money, shortDate } from "@/lib/format";
+import { FinanceModal } from "@/components/FinanceModal";
+import { Plus } from "lucide-react";
 
 export type FinanceRow = {
   id: string;
@@ -70,6 +72,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
   const [view, setView] = useState<"cash" | "reports">("cash");
   const [form, setForm] = useState<FinanceForm>(() => emptyForm(referenceDate));
   const [editing, setEditing] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [receipt, setReceipt] = useState<File | null>(null);
   const [formPreview, setFormPreview] = useState<string | null>(null);
   const [modalReceipt, setModalReceipt] = useState<string | null>(null);
@@ -97,6 +100,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
   const categoryMaximum = Math.max(1, ...categories.map(([, value]) => value));
 
   function clearForm() {
+    setModalOpen(false);
     if (formPreview?.startsWith("blob:")) URL.revokeObjectURL(formPreview);
     setForm(emptyForm(referenceDate));
     setEditing(null);
@@ -143,6 +147,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       setRows((current) => editing ? current.map((row) => row.id === editing ? body.item : row) : [body.item, ...current]);
       setSelectedMonth(monthKey(body.item.occurredAt));
       clearForm();
+      setModalOpen(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível salvar o lançamento.");
     } finally {
@@ -151,6 +156,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
   }
 
   function edit(row: FinanceRow) {
+    setModalOpen(true);
     setEditing(row.id);
     setForm({ type: row.type, title: row.title, description: row.description || "", amount: (row.amountCents / 100).toFixed(2).replace(".", ","), occurredAt: inputDate(row.occurredAt), category: row.category || "", receiptUrl: row.receiptUrl || "" });
     setReceipt(null);
@@ -167,6 +173,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       await responseBody<{ ok: boolean }>(await fetch("/api/admin/financas", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: row.id }) }));
       setRows((current) => current.filter((item) => item.id !== row.id));
       if (editing === row.id) clearForm();
+      setModalOpen(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível excluir o lançamento.");
     } finally {
@@ -181,32 +188,134 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       <div className="card kpi finance-expense"><span>📉 Saídas no mês</span><strong>{money(currentExpense)}</strong><small>{months[0].label}</small></div>
     </div>
 
-    <div className="module-tabs" role="tablist" aria-label="Visões de finanças">
-      <button type="button" role="tab" aria-selected={view === "cash"} onClick={() => setView("cash")}>Fluxo de caixa</button>
-      <button type="button" role="tab" aria-selected={view === "reports"} onClick={() => setView("reports")}>Relatórios</button>
+        <div className="flex-between-wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
+      <div className="module-tabs" role="tablist" aria-label="Visões de finanças" style={{ margin: 0 }}>
+        <button type="button" role="tab" aria-selected={view === "cash"} onClick={() => setView("cash")}>Fluxo de caixa</button>
+        <button type="button" role="tab" aria-selected={view === "reports"} onClick={() => setView("reports")}>Relatórios</button>
+      </div>
+      {canManage && view === "cash" && (
+        <button
+          type="button"
+          className="button"
+          onClick={() => {
+            clearForm();
+            setModalOpen(true);
+          }}
+          style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+        >
+          <Plus size={16} />
+          <span>Novo lançamento</span>
+        </button>
+      )}
     </div>
 
-    {view === "cash" && <>
-      {canManage && <form className="card form finance-form" onSubmit={save}>
-        <div className="form-heading"><div><span className="eyebrow">Lançamento</span><h2>{editing ? "Editar lançamento" : "Novo lançamento"}</h2></div>{editing && <button className="button secondary small" type="button" onClick={clearForm}>Cancelar edição</button>}</div>
+    {/* MODAL PADRONIZADO PDM1 PARA NOVO/EDITAR LANÇAMENTO */}
+    <FinanceModal
+      open={modalOpen}
+      onClose={clearForm}
+      title={editing ? "Editar Lançamento" : "Novo Lançamento Financeiro"}
+      subtitle="Registre uma entrada ou saída no fluxo de caixa da paróquia."
+    >
+      <form className="form finance-form" onSubmit={save}>
         <div className="form-row finance-form-main">
-          <label className="field">Tipo<select required value={form.type} onChange={(event) => { const type = event.target.value as FinanceForm["type"]; setForm({ ...form, type, receiptUrl: type === "INCOME" ? "" : form.receiptUrl }); if (type === "INCOME") chooseReceipt(null); }}><option value="INCOME">Entrada</option><option value="EXPENSE">Saída</option></select></label>
-          <label className="field field-grow">Título<input required maxLength={160} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
-          <label className="field">Valor (R$)<input required inputMode="decimal" placeholder="0,00" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} /></label>
-          <label className="field">Data<input type="date" required value={form.occurredAt} onChange={(event) => setForm({ ...form, occurredAt: event.target.value })} /></label>
+          <label className="field">
+            Tipo
+            <select
+              required
+              value={form.type}
+              onChange={(event) => {
+                const type = event.target.value as FinanceForm["type"];
+                setForm({ ...form, type, receiptUrl: type === "INCOME" ? "" : form.receiptUrl });
+                if (type === "INCOME") chooseReceipt(null);
+              }}
+            >
+              <option value="INCOME">Entrada (+)</option>
+              <option value="EXPENSE">Saída (−)</option>
+            </select>
+          </label>
+          <label className="field field-grow">
+            Título
+            <input
+              required
+              maxLength={160}
+              placeholder="Ex: Venda de Camisas / Compra de Velas"
+              value={form.title}
+              onChange={(event) => setForm({ ...form, title: event.target.value })}
+            />
+          </label>
+          <label className="field">
+            Valor (R$)
+            <input
+              required
+              inputMode="decimal"
+              placeholder="0,00"
+              value={form.amount}
+              onChange={(event) => setForm({ ...form, amount: event.target.value })}
+            />
+          </label>
+          <label className="field">
+            Data
+            <input
+              type="date"
+              required
+              value={form.occurredAt}
+              onChange={(event) => setForm({ ...form, occurredAt: event.target.value })}
+            />
+          </label>
         </div>
         <div className="form-row">
-          <label className="field">Categoria<input maxLength={100} value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></label>
-          <label className="field field-grow">Descrição<input maxLength={500} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
-          {form.type === "EXPENSE" && <label className="field receipt-input">Foto da nota/recibo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseReceipt(event.target.files?.[0] || null)} /><small>JPEG, PNG ou WebP · até 5 MB</small></label>}
+          <label className="field">
+            Categoria
+            <input
+              maxLength={100}
+              placeholder="Ex: Eventos, Doações, Bazar"
+              value={form.category}
+              onChange={(event) => setForm({ ...form, category: event.target.value })}
+            />
+          </label>
+          <label className="field field-grow">
+            Descrição (opcional)
+            <input
+              maxLength={500}
+              placeholder="Detalhes adicionais do lançamento"
+              value={form.description}
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
+            />
+          </label>
+          {form.type === "EXPENSE" && (
+            <label className="field receipt-input">
+              Foto da nota/recibo
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) => chooseReceipt(event.target.files?.[0] || null)}
+              />
+            </label>
+          )}
         </div>
-        {form.type === "EXPENSE" && formPreview && <div className="pending-receipt">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={formPreview} alt="Prévia do comprovante" /><span>{receipt?.name || "Comprovante atual"}</span><button className="button secondary small" type="button" onClick={() => { chooseReceipt(null); setForm({ ...form, receiptUrl: "" }); }}>Remover</button>
-        </div>}
+        {formPreview && (
+          <div className="receipt-preview">
+            <img src={formPreview} alt="Comprovante selecionado" />
+            {receipt && (
+              <button className="button secondary small" type="button" onClick={() => chooseReceipt(null)}>
+                Remover foto
+              </button>
+            )}
+          </div>
+        )}
         {error && <p className="error" role="alert">{error}</p>}
-        <div className="actions"><button className="button" type="submit" disabled={busy}>{busy ? "Salvando…" : editing ? "Salvar alterações" : "Adicionar lançamento"}</button></div>
-      </form>}
+        <div className="actions" style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "14px" }}>
+          <button className="button secondary" type="button" onClick={clearForm}>
+            Cancelar
+          </button>
+          <button className="button" type="submit" disabled={busy}>
+            {busy ? "Salvando…" : editing ? "Salvar alterações" : "Confirmar Lançamento"}
+          </button>
+        </div>
+      </form>
+    </FinanceModal>
+
+    {view === "cash" && <>
 
       <section className="finance-history">
         <div className="section-heading compact"><div><span className="eyebrow">Histórico</span><h2>Últimos 3 meses</h2></div><p>Escolha um mês para consultar os lançamentos.</p></div>
