@@ -90,7 +90,7 @@ export default async function HomePage() {
     </div></section>
 
     <section className="section alt" id="localizacao"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Localização</span><h2>Paróquia e comunidades</h2></div><p>Endereços e mapas interativos para chegar às celebrações, encontros e atividades.</p></div>
+      <div className="section-heading"><div><span className="eyebrow">Nossas Comunidades</span><h2>Conheça Nossa Comunidade</h2></div><p>Venha celebrar conosco! Confira os locais, mapas e horários de missas da nossa paróquia e capelas.</p></div>
       {locations.length > 0 ? (
         <LocationTabs locations={locations} />
       ) : (

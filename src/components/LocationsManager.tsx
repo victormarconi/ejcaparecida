@@ -264,7 +264,15 @@ export function LocationsManager({ initialLocations }: { initialLocations: Locat
             <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.12)", minHeight: "360px" }}>
               <iframe
                 title={`Mapa de ${viewingMap.title}`}
-                src={`https://www.google.com/maps?q=${encodeURIComponent(viewingMap.query)}&z=18&output=embed`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(
+                (() => {
+                  if (viewingMap.mapUrl) {
+                    const m = viewingMap.mapUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || viewingMap.mapUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    if (m) return `${m[1]},${m[2]}`;
+                  }
+                  return viewingMap.query;
+                })()
+              )}&z=18&output=embed`}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 style={{ width: "100%", height: "100%", minHeight: "360px", border: 0, display: "block" }}

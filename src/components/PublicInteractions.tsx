@@ -42,7 +42,15 @@ export function LocationTabs({
   const [active, setActive] = useState(locations[0]?.id);
   const location = locations.find((item) => item.id === active) || locations[0];
   if (!location) return null;
-  const map = `https://www.google.com/maps?q=${encodeURIComponent(location.query)}&z=18&output=embed`;
+    // Resolve embed map target (coordinates or query)
+  let mapTarget = location.query;
+  if (location.mapUrl) {
+    const coordMatch = location.mapUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || location.mapUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (coordMatch) {
+      mapTarget = `${coordMatch[1]},${coordMatch[2]}`;
+    }
+  }
+  const map = `https://www.google.com/maps?q=${encodeURIComponent(mapTarget)}&z=18&output=embed`;
   return (
     <div className="locations">
       <div className="tabs location-tabs" role="tablist" aria-label="Escolha uma localização" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "18px" }}>
