@@ -37,7 +37,8 @@ export function PublicCalendar({ events, initialMonth, now }: { events: PublicEv
   const [year, month] = visibleMonth.split("-").map(Number);
   const firstDay = new Date(Date.UTC(year, month - 1, 1));
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(firstDay);
+  const rawMonthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(firstDay);
+  const monthLabel = rawMonthLabel.charAt(0).toUpperCase() + rawMonthLabel.slice(1);
   const eventsByDay = useMemo(() => {
     const grouped = new Map<string, PublicEvent[]>();
     for (const event of events) {
@@ -69,9 +70,73 @@ export function PublicCalendar({ events, initialMonth, now }: { events: PublicEv
         <button className="button secondary small" type="button" onClick={() => move(1)} aria-label="Próximo mês"><span>Próximo mês</span> →</button>
       </div>
       <div className="calendar-grid calendar-weekdays">{weekdays.map((day) => <div key={day}>{day}</div>)}</div>
-      <div className="calendar-grid calendar-days">{cells.map((cell) => <div className={`calendar-day${cell.day ? "" : " outside"}${cell.today ? " today" : ""}${cell.events?.length ? " has-event" : ""}`} key={cell.key}>
-        {cell.day && <><span className="day-number">{cell.day}</span><div className="day-events">{cell.events?.slice(0, 3).map((event) => <span className="event-dot" title={event.title} aria-label={event.title} key={event.id} />)}</div>{Boolean(cell.events && cell.events.length > 3) && <small>+{cell.events!.length - 3}</small>}</>}
-      </div>)}</div>
+      <div className="calendar-grid calendar-days">
+        {cells.map((cell) => (
+          <div
+            className={`calendar-day${cell.day ? "" : " outside"}${cell.today ? " today" : ""}${cell.events?.length ? " has-event" : ""}`}
+            key={cell.key}
+            style={{ minHeight: "96px", padding: "8px", overflow: "hidden" }}
+          >
+            {cell.day && (
+              <div style={{ display: "flex", flexDirection: "column", height: "100%", minWidth: 0, width: "100%" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <span className="day-number" style={{ fontSize: "0.82rem", fontWeight: 800 }}>
+                    {cell.day}
+                  </span>
+                  {Boolean(cell.events && cell.events.length > 0) && (
+                    <span
+                      style={{
+                        width: "6px",
+                        height: "6px",
+                        borderRadius: "50%",
+                        background: "var(--brand)",
+                        boxShadow: "0 0 6px var(--brand)",
+                      }}
+                      title={`${cell.events?.length ?? 0} evento(s)`}
+                    />
+                  )}
+                </div>
+
+                {/* Eventos com nome e horário na célula */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px", overflow: "hidden", width: "100%", minWidth: 0 }}>
+                  {cell.events?.slice(0, 2).map((event) => (
+                    <div
+                      key={event.id}
+                      style={{
+                        fontSize: "0.72rem",
+                        padding: "2px 5px",
+                        borderRadius: "5px",
+                        background: "rgba(2, 132, 199, 0.12)",
+                        color: "#38bdf8",
+                        border: "1px solid rgba(2, 132, 199, 0.25)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        width: "100%",
+                        minWidth: 0,
+                        maxWidth: "100%",
+                        overflow: "hidden",
+                        lineHeight: 1.2,
+                      }}
+                      title={`${eventTime(event.startsAt)} - ${event.title}`}
+                    >
+                      <strong style={{ flexShrink: 0, fontSize: "0.68rem" }}>{eventTime(event.startsAt)}</strong>
+                      <span style={{ minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                        {event.title}
+                      </span>
+                    </div>
+                  ))}
+                  {Boolean(cell.events && cell.events.length > 2) && (
+                    <small style={{ color: "var(--muted)", fontSize: "0.68rem", fontWeight: 600, paddingLeft: "2px" }}>
+                      +{cell.events ? cell.events.length - 2 : 0} outro(s)
+                    </small>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
 
     <section className="upcoming-events" aria-labelledby="proximos-eventos">
