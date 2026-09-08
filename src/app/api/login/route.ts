@@ -3,22 +3,48 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setSessionCookie } from "@/lib/auth";
 
+function getBaseUrl(request: NextRequest): string {
+  const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+  return request.nextUrl.origin;
+}
+
 export async function POST(request: NextRequest) {
   const type = request.headers.get("content-type") || "";
   const input = type.includes("application/json") ? await request.json() : Object.fromEntries((await request.formData()).entries());
   const identifier = String(input.identifier || input.username || input.email || "").trim().toLowerCase();
   const password = String(input.password || "");
-  const callbackUrl = String(input.callbackUrl || "/membros");
+  const callbackUrl = String(input.callbackUrl || "");
   const remember = input.remember === true || input.remember === "true" || input.remember === "on" || input.remember === "1";
+
+  const baseUrl = getBaseUrl(request);
 
   const user = identifier ? await prisma.user.findFirst({ where: { active: true, OR: [{ email: identifier }, { username: identifier }] } }) : null;
   const valid = user ? await bcrypt.compare(password, user.passwordHash) : false;
   if (!user || !valid) {
     if (type.includes("application/json")) return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
-    return NextResponse.redirect(new URL(`/login?erro=1&callbackUrl=${encodeURIComponent(callbackUrl.startsWith("/") ? callbackUrl : "/membros")}`, request.url), 303);
+    const errCallback = callbackUrl.startsWith("/") ? callbackUrl : "/membros";
+    return NextResponse.redirect(`${baseUrl}/login?erro=1&callbackUrl=${encodeURIComponent(errCallback)}`, 303);
   }
-  const target = callbackUrl.startsWith("/") ? callbackUrl : user.role === "ADMIN" ? "/admin/financas" : "/membros";
-  const response = type.includes("application/json") ? NextResponse.json({ ok: true, role: user.role }) : NextResponse.redirect(new URL(target, request.url), 303);
+
+  // Regra exclusiva: se marcou "Lembrar de mim", vai direto para o financeiro (/admin/financas)!
+  // Se não marcou ou veio com callback específico, respeita o fluxo normal
+  let target = "/membros";
+  if (remember && user.role === "ADMIN") {
+    target = "/admin/financas";
+  } else if (callbackUrl.startsWith("/")) {
+    target = callbackUrl;
+  } else if (user.role === "ADMIN") {
+    target = "/admin";
+  }
+
+  const response = type.includes("application/json")
+    ? NextResponse.json({ ok: true, role: user.role, redirectUrl: target })
+    : NextResponse.redirect(`${baseUrl}${target}`, 303);
+
   setSessionCookie(response, user.id, remember);
   return response;
 }
