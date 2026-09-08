@@ -69,16 +69,19 @@ function toLocalInput(iso?: string | null) {
 
 
 const COLOR_OPTIONS = [
-  { id: "sky", label: "Azul Oficial", bg: "rgba(2, 132, 199, 0.15)", border: "rgba(2, 132, 199, 0.3)", text: "#38bdf8", dot: "#38bdf8" },
-  { id: "gold", label: "Dourado / Festa", bg: "rgba(234, 179, 8, 0.15)", border: "rgba(234, 179, 8, 0.35)", text: "#facc15", dot: "#facc15" },
-  { id: "emerald", label: "Verde / Pastoral", bg: "rgba(16, 185, 129, 0.15)", border: "rgba(16, 185, 129, 0.35)", text: "#34d399", dot: "#34d399" },
-  { id: "purple", label: "Roxo / Penitencial", bg: "rgba(168, 85, 247, 0.15)", border: "rgba(168, 85, 247, 0.35)", text: "#c084fc", dot: "#c084fc" },
-  { id: "rose", label: "Rosa / Mariano", bg: "rgba(244, 63, 94, 0.15)", border: "rgba(244, 63, 94, 0.35)", text: "#fb7185", dot: "#fb7185" },
-  { id: "amber", label: "Laranja / Jovem", bg: "rgba(245, 158, 11, 0.15)", border: "rgba(245, 158, 11, 0.35)", text: "#fbbf24", dot: "#fbbf24" },
+  { id: "sky", label: "Azul Padrão", bg: "rgba(2, 132, 199, 0.15)", border: "rgba(2, 132, 199, 0.3)", text: "#38bdf8", dot: "#38bdf8" },
+  { id: "emerald", label: "Pastoral", bg: "rgba(16, 185, 129, 0.15)", border: "rgba(16, 185, 129, 0.35)", text: "#34d399", dot: "#34d399" },
+  { id: "gold", label: "Vendas", bg: "rgba(234, 179, 8, 0.15)", border: "rgba(234, 179, 8, 0.35)", text: "#facc15", dot: "#facc15" },
+  { id: "amber", label: "Eventos no Geral", bg: "rgba(245, 158, 11, 0.15)", border: "rgba(245, 158, 11, 0.35)", text: "#fbbf24", dot: "#fbbf24" },
 ];
 
+const FALLBACK_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+  purple: { bg: "rgba(168, 85, 247, 0.15)", border: "rgba(168, 85, 247, 0.35)", text: "#c084fc", dot: "#c084fc" },
+  rose: { bg: "rgba(244, 63, 94, 0.15)", border: "rgba(244, 63, 94, 0.35)", text: "#fb7185", dot: "#fb7185" },
+};
+
 function getColor(id?: string | null) {
-  return COLOR_OPTIONS.find((c) => c.id === id) || COLOR_OPTIONS[0];
+  return COLOR_OPTIONS.find((c) => c.id === id) || (id && FALLBACK_COLORS[id]) || COLOR_OPTIONS[0];
 }
 
 export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] }) {
