@@ -1,5 +1,143 @@
 "use client";
 
+export function CommunityGrid({
+  locations,
+}: {
+  locations: Array<{
+    id: string;
+    title: string;
+    type: string;
+    address: string;
+    mapUrl: string | null;
+    query: string;
+    massSchedule?: string | null;
+  }>;
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+        gap: "20px",
+      }}
+    >
+      {locations.map((loc) => {
+        let embedTarget = loc.query;
+        if (loc.mapUrl) {
+          const coordMatch =
+            loc.mapUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) ||
+            loc.mapUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+          if (coordMatch) {
+            embedTarget = `${coordMatch[1]},${coordMatch[2]}`;
+          }
+        }
+        const cleanTarget = embedTarget || `${loc.title} Valentina João Pessoa`;
+        const map = `https://www.google.com/maps?q=${encodeURIComponent(cleanTarget)}&z=17&output=embed`;
+        const directMapsUrl =
+          loc.mapUrl?.trim() ||
+          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.title}, Valentina, João Pessoa - PB`)}`;
+
+        return (
+          <article
+            key={loc.id}
+            className="card"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              padding: "20px",
+              borderRadius: "16px",
+              background: "#0c1322",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+            }}
+          >
+            <div>
+              <span
+                style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  color: "var(--brand)",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                {loc.type}
+              </span>
+              <h3 style={{ margin: "2px 0 4px", fontSize: "1.25rem", fontWeight: 800, color: "#ffffff" }}>
+                {loc.title}
+              </h3>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.85rem" }}>
+                📍 {loc.address}
+              </p>
+            </div>
+
+            {loc.massSchedule && (
+              <div
+                style={{
+                  background: "rgba(255, 255, 255, 0.03)",
+                  border: "1px solid rgba(255, 255, 255, 0.06)",
+                  borderRadius: "10px",
+                  padding: "8px 12px",
+                  fontSize: "0.82rem",
+                }}
+              >
+                <strong style={{ display: "block", color: "#38bdf8", marginBottom: "2px", fontSize: "0.76rem" }}>
+                  ⏰ Horários das Missas
+                </strong>
+                <span style={{ color: "var(--muted)", whiteSpace: "pre-line", lineHeight: 1.4 }}>
+                  {loc.massSchedule}
+                </span>
+              </div>
+            )}
+
+            <div
+              style={{
+                borderRadius: "10px",
+                overflow: "hidden",
+                height: "190px",
+                border: "1px solid var(--border)",
+                width: "100%",
+                marginTop: "auto",
+              }}
+            >
+              <iframe
+                title={`Mapa de ${loc.title}`}
+                src={map}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                style={{ width: "100%", height: "100%", border: 0, display: "block" }}
+              />
+            </div>
+
+            <div style={{ marginTop: "4px" }}>
+              <a
+                className="button secondary"
+                href={directMapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  width: "100%",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  fontSize: "0.84rem",
+                  padding: "8px 14px",
+                }}
+              >
+                <span>📍 Abrir no Google Maps</span>
+                <span>↗</span>
+              </a>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+
+
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {

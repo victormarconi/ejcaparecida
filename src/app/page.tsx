@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CampaignForm } from "@/components/CampaignForm";
 import { PublicCalendar } from "@/components/PublicCalendar";
-import { CopyPix, LocationTabs, ThemeToggle, PixDonationSection } from "@/components/PublicInteractions";
+import { CopyPix, LocationTabs, ThemeToggle, PixDonationSection, CommunityGrid } from "@/components/PublicInteractions";
 import { parseFormFields } from "@/lib/forms";
 import { prisma } from "@/lib/prisma";
 
@@ -103,7 +103,7 @@ export default async function HomePage() {
     <section className="section alt" id="localizacao"><div className="container">
       <div className="section-heading"><h2>Conheça Nossa Comunidade</h2><p>Venha celebrar conosco! Confira os locais, mapas e horários de missas da nossa paróquia e capelas.</p></div>
       {locations.length > 0 ? (
-        <LocationTabs locations={locations} />
+        <CommunityGrid locations={locations} />
       ) : (
         <div className="card empty">As localizações serão atualizadas em breve.</div>
       )}
