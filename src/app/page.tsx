@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CampaignForm } from "@/components/CampaignForm";
 import { PublicCalendar } from "@/components/PublicCalendar";
-import { CopyPix, ThemeToggle } from "@/components/PublicInteractions";
+import { CopyPix, LocationTabs, ThemeToggle } from "@/components/PublicInteractions";
 import { parseFormFields } from "@/lib/forms";
 import { prisma } from "@/lib/prisma";
 
@@ -90,13 +90,12 @@ export default async function HomePage() {
     </div></section>
 
     <section className="section alt" id="localizacao"><div className="container">
-      <div className="section-heading"><div><span className="eyebrow">Localização</span><h2>Paróquia e comunidades</h2></div><p>Endereços estáveis para chegar às celebrações, encontros e atividades.</p></div>
-      <div className="location-grid">{locations.map((location) => <article className="card chapel-card" key={location.id}>
-        <span className="eyebrow">{location.type}</span><h3>{location.title}</h3><p className="chapel-address">📍 {location.address}</p>
-        <div className="mass-schedule"><strong>Horários das missas</strong><p>{location.massSchedule || "Consulte a programação atual da paróquia."}</p></div>
-        <a className="button secondary" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.query)}`} target="_blank" rel="noreferrer">Ver no Google Maps ↗</a>
-      </article>)}</div>
-      {!locations.length && <div className="card empty">As localizações serão atualizadas em breve.</div>}
+      <div className="section-heading"><div><span className="eyebrow">Localização</span><h2>Paróquia e comunidades</h2></div><p>Endereços e mapas interativos para chegar às celebrações, encontros e atividades.</p></div>
+      {locations.length > 0 ? (
+        <LocationTabs locations={locations} />
+      ) : (
+        <div className="card empty">As localizações serão atualizadas em breve.</div>
+      )}
     </div></section>
 
     <footer className="footer"><div className="container">EJC Nossa Senhora Aparecida · Valentina, João Pessoa/PB</div></footer>

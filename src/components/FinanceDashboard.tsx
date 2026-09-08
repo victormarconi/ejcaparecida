@@ -508,7 +508,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       onClose={() => setHistoryModalOpen(false)}
       title="Histórico Financeiro Completo"
       subtitle={`Consulta aos ${rows.length} lançamentos desde Abril de 2026.`}
-      maxWidth="840px"
+      maxWidth="960px"
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {/* Abas compactas por mês dentro do modal */}
@@ -538,8 +538,8 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
         </div>
 
         {/* Tabela com scroll suave no modal */}
-        <div style={{ maxHeight: "420px", overflowY: "auto", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px" }}>
-          <table className="compact-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+        <div style={{ maxHeight: "480px", overflowY: "auto", overflowX: "auto", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px" }}>
+          <table className="compact-table" style={{ width: "100%", minWidth: "600px", borderCollapse: "collapse", fontSize: "0.82rem" }}>
             <thead>
               <tr style={{ background: "rgba(255,255,255,0.04)" }}>
                 <th style={{ padding: "8px 12px", textAlign: "left" }}>Data</th>

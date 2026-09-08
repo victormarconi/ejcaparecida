@@ -797,7 +797,7 @@ tr:last-child td { border-bottom: 0; }
 .pdm-modal-panel {
   position: relative;
   z-index: 10000;
-  width: min(620px, calc(100vw - 32px));
+  width: min(920px, calc(100vw - 24px));
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.12);
