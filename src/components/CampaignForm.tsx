@@ -20,6 +20,7 @@ export function CampaignForm({
   const [data, setData] = useState<Record<string, string | boolean>>({});
   const [status, setStatus] = useState<"idle" | "busy" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -32,6 +33,26 @@ export function CampaignForm({
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  
+  async function handleFileUpload(fieldId: string, file: File) {
+    setUploadingField(fieldId);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/forms/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || "Falha no envio do arquivo.");
+      setData((prev) => ({ ...prev, [fieldId]: resData.url }));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Erro ao anexar arquivo.");
+    } finally {
+      setUploadingField(null);
+    }
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -121,23 +142,116 @@ export function CampaignForm({
                   </label>
                 </div>
 
-                {fields.map((field) =>
-                  field.type === "checkbox" ? (
-                    <label className="checkbox-field" key={field.id}>
-                      <input
-                        type="checkbox"
-                        required={field.required}
-                        checked={Boolean(data[field.id])}
-                        onChange={(event) =>
-                          setData({ ...data, [field.id]: event.target.checked })
-                        }
-                      />
-                      <span>
-                        {field.label}
-                        {field.required ? " *" : ""}
-                      </span>
-                    </label>
-                  ) : (
+                {fields.map((field) => {
+                  if (field.type === "checkbox") {
+                    return (
+                      <label className="checkbox-field" key={field.id}>
+                        <input
+                          type="checkbox"
+                          required={field.required}
+                          checked={Boolean(data[field.id])}
+                          onChange={(event) =>
+                            setData({ ...data, [field.id]: event.target.checked })
+                          }
+                        />
+                        <span>
+                          {field.label}
+                          {field.required ? " *" : ""}
+                        </span>
+                      </label>
+                    );
+                  }
+
+                  if (field.type === "radio") {
+                    const options = field.options && field.options.length ? field.options : ["Sim", "Não"];
+                    return (
+                      <div className="field" key={field.id} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <span>
+                          {field.label}
+                          {field.required ? " *" : ""}
+                        </span>
+                        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                          {options.map((opt) => (
+                            <label
+                              key={opt}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                background: data[field.id] === opt ? "rgba(2, 132, 199, 0.25)" : "rgba(255, 255, 255, 0.04)",
+                                border: data[field.id] === opt ? "1px solid #0284c7" : "1px solid rgba(255, 255, 255, 0.1)",
+                                cursor: "pointer",
+                                color: data[field.id] === opt ? "#38bdf8" : "#cbd5e1",
+                                fontWeight: 600,
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name={field.id}
+                                value={opt}
+                                checked={data[field.id] === opt}
+                                onChange={() => setData({ ...data, [field.id]: opt })}
+                                required={field.required}
+                              />
+                              <span>{opt}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (field.type === "file") {
+                    const fileUrl = String(data[field.id] || "");
+                    const isUploading = uploadingField === field.id;
+
+                    return (
+                      <div className="field" key={field.id} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <span>
+                          {field.label}
+                          {field.required ? " *" : ""}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                          <label
+                            className="button secondary"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              cursor: isUploading ? "wait" : "pointer",
+                              margin: 0,
+                              fontSize: "0.84rem",
+                            }}
+                          >
+                            <span>{isUploading ? "Enviando arquivo..." : fileUrl ? "Trocar Arquivo" : "Escolher Foto ou PDF"}</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,application/pdf"
+                              style={{ display: "none" }}
+                              disabled={isUploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleFileUpload(field.id, file);
+                              }}
+                            />
+                          </label>
+                          {fileUrl && (
+                            <span style={{ fontSize: "0.80rem", color: "#34d399", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                              ✓ Arquivo anexado com sucesso!
+                            </span>
+                          )}
+                        </div>
+                        {field.required && !fileUrl && (
+                          <input type="text" value="" required style={{ display: "none" }} tabIndex={-1} readOnly />
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
                     <label className="field" key={field.id}>
                       <span>
                         {field.label}
@@ -169,8 +283,8 @@ export function CampaignForm({
                         />
                       )}
                     </label>
-                  )
-                )}
+                  );
+                })}
 
                 {message && status === "error" && (
                   <p className="form-feedback error">{message}</p>

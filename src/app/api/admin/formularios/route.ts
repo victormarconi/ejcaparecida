@@ -41,7 +41,9 @@ const campaignData = (value: z.infer<typeof campaignSchema>) => ({
     label: field.label,
     type: field.type,
     required: field.required,
-    options: field.type === "select" ? field.options : undefined,
+    options: (field.type === "select" || field.type === "radio")
+      ? (field.options && field.options.length ? field.options : ["Sim", "Não"])
+      : undefined,
   }))),
 });
 

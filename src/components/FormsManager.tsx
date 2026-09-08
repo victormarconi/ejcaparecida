@@ -439,14 +439,44 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <label className="field">
-              Data de Término / Validade
+            <div className="field">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <span>Data de Término / Validade</span>
+                <div style={{ display: "flex", gap: "4px" }}>
+                  <button
+                    type="button"
+                    className="pdm-btn-secondary pdm-btn-small"
+                    style={{ fontSize: "0.68rem", padding: "1px 6px" }}
+                    onClick={() => {
+                      const now = new Date();
+                      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                      const monthStr = String(lastDay.getMonth() + 1).padStart(2, "0");
+                      const dayStr = String(lastDay.getDate()).padStart(2, "0");
+                      setExpiresAt(`${lastDay.getFullYear()}-${monthStr}-${dayStr}T23:59`);
+                    }}
+                    title="Definir até o último dia do mês atual"
+                  >
+                    Fim do Mês
+                  </button>
+                  <button
+                    type="button"
+                    className="pdm-btn-secondary pdm-btn-small"
+                    style={{ fontSize: "0.68rem", padding: "1px 6px" }}
+                    onClick={() => setExpiresAt("")}
+                  >
+                    Sem Limite
+                  </button>
+                </div>
+              </div>
               <input
                 type="datetime-local"
                 value={expiresAt}
                 onChange={(e) => setExpiresAt(e.target.value)}
               />
-            </label>
+              <small style={{ color: "#94a3b8", fontSize: "0.70rem" }}>
+                Atenção aos dias do mês (ex: Setembro tem 30 dias).
+              </small>
+            </div>
             <label className="field">
               URL da Imagem / Banner (Opcional)
               <input
@@ -496,53 +526,97 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
               </button>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "220px", overflowY: "auto", paddingRight: "4px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "320px", overflowY: "auto", paddingRight: "4px" }}>
               {fields.map((field, idx) => (
                 <div
                   key={idx}
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.2fr 1fr auto auto",
+                    display: "flex",
+                    flexDirection: "column",
                     gap: "8px",
-                    alignItems: "center",
                     background: "rgba(255, 255, 255, 0.03)",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(255, 255, 255, 0.06)",
+                    padding: "10px 12px",
+                    borderRadius: "10px",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
                   }}
                 >
-                  <input
-                    value={field.label}
-                    placeholder="Nome do campo"
-                    onChange={(e) => updateField(idx, { label: e.target.value })}
-                    style={{ fontSize: "0.82rem", padding: "6px 8px" }}
-                  />
-                  <select
-                    value={field.type}
-                    onChange={(e) => updateField(idx, { type: e.target.value as DynamicFormField["type"] })}
-                    style={{ fontSize: "0.82rem", padding: "6px 8px" }}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1.2fr 1fr auto auto",
+                      gap: "8px",
+                      alignItems: "center",
+                    }}
                   >
-                    <option value="text">Texto curto</option>
-                    <option value="number">Número</option>
-                    <option value="select">Lista de opções</option>
-                    <option value="checkbox">Caixa de marcar</option>
-                  </select>
-                  <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.78rem", color: "#94a3b8", cursor: "pointer", margin: 0 }}>
                     <input
-                      type="checkbox"
-                      checked={field.required}
-                      onChange={(e) => updateField(idx, { required: e.target.checked })}
+                      value={field.label}
+                      placeholder="Nome do campo"
+                      onChange={(e) => updateField(idx, { label: e.target.value })}
+                      style={{ fontSize: "0.82rem", padding: "6px 8px" }}
                     />
-                    Obrigatório
-                  </label>
-                  <button
-                    type="button"
-                    className="pdm-btn-danger pdm-btn-small"
-                    onClick={() => removeField(idx)}
-                    title="Remover campo"
-                  >
-                    <Trash2 size={12} />
-                  </button>
+                    <select
+                      value={field.type}
+                      onChange={(e) => {
+                        const t = e.target.value as DynamicFormField["type"];
+                        const patch: Partial<DynamicFormField> = { type: t };
+                        if (t === "radio" && (!field.options || !field.options.length)) {
+                          patch.options = ["Sim", "Não"];
+                        } else if (t === "select" && (!field.options || !field.options.length)) {
+                          patch.options = ["Opção 1", "Opção 2"];
+                        }
+                        updateField(idx, patch);
+                      }}
+                      style={{ fontSize: "0.82rem", padding: "6px 8px" }}
+                    >
+                      <option value="text">Texto curto</option>
+                      <option value="number">Número</option>
+                      <option value="select">Lista de opções (Dropdown)</option>
+                      <option value="radio">Sim ou Não (Escolha única)</option>
+                      <option value="checkbox">Caixa de marcar</option>
+                      <option value="file">Anexo (Foto ou PDF)</option>
+                    </select>
+                    <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.78rem", color: "#94a3b8", cursor: "pointer", margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={field.required}
+                        onChange={(e) => updateField(idx, { required: e.target.checked })}
+                      />
+                      Obrigatório
+                    </label>
+                    <button
+                      type="button"
+                      className="pdm-btn-danger pdm-btn-small"
+                      onClick={() => removeField(idx)}
+                      title="Remover campo"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+
+                  {/* Configuração de opções para Select e Radio */}
+                  {(field.type === "select" || field.type === "radio") && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(56, 189, 248, 0.05)", padding: "6px 10px", borderRadius: "8px", border: "1px solid rgba(56, 189, 248, 0.15)" }}>
+                      <span style={{ fontSize: "0.76rem", color: "#38bdf8", whiteSpace: "nowrap", fontWeight: 600 }}>
+                        {field.type === "radio" ? "Opções (ex: Sim, Não):" : "Opções da lista (separadas por vírgula):"}
+                      </span>
+                      <input
+                        value={field.options?.join(", ") || ""}
+                        placeholder={field.type === "radio" ? "Sim, Não" : "Ex: Círculo Vermelho, Círculo Azul, Círculo Amarelo, Círculo Verde"}
+                        onChange={(e) => {
+                          const opts = e.target.value.split(",").map((s) => s.trim()).filter(Boolean);
+                          updateField(idx, { options: opts });
+                        }}
+                        style={{ fontSize: "0.80rem", padding: "4px 8px", flex: 1 }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Informação sobre campo de anexo */}
+                  {field.type === "file" && (
+                    <div style={{ fontSize: "0.76rem", color: "#38bdf8", padding: "4px 8px", background: "rgba(56, 189, 248, 0.06)", borderRadius: "6px" }}>
+                      📎 Permite anexar <strong>comprovante Pix, foto ou PDF</strong> de até 10 MB.
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -631,12 +705,35 @@ export function FormsManager({ initialCampaigns }: { initialCampaigns: AdminForm
                       </td>
                       <td style={{ padding: "10px 12px", verticalAlign: "top" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                          {Object.entries(sub.data).map(([k, v]) => (
-                            <div key={k}>
-                              <span style={{ color: "#94a3b8", textTransform: "capitalize" }}>{k}: </span>
-                              <strong style={{ color: "#f1f5f9" }}>{String(v)}</strong>
-                            </div>
-                          ))}
+                          {Object.entries(sub.data).map(([k, v]) => {
+                            const strVal = String(v || "");
+                            const isFile = strVal.startsWith("/uploads/") || strVal.endsWith(".pdf") || Boolean(strVal.match(/\.(jpg|jpeg|png|webp)$/i));
+                            return (
+                              <div key={k} style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                <span style={{ color: "#94a3b8", textTransform: "capitalize", minWidth: "120px" }}>{k}: </span>
+                                {isFile ? (
+                                  <a
+                                    href={strVal}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="table-action-btn"
+                                    style={{
+                                      background: "rgba(56, 189, 248, 0.12)",
+                                      color: "#38bdf8",
+                                      borderColor: "rgba(56, 189, 248, 0.25)",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "4px",
+                                    }}
+                                  >
+                                    📎 Ver Anexo ({strVal.endsWith(".pdf") ? "PDF" : "Foto"}) ↗
+                                  </a>
+                                ) : (
+                                  <strong style={{ color: "#f1f5f9" }}>{strVal}</strong>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </td>
                     </tr>

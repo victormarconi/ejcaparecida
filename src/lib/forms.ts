@@ -1,4 +1,4 @@
-export const FORM_FIELD_TYPES = ["text", "number", "select", "checkbox"] as const;
+export const FORM_FIELD_TYPES = ["text", "number", "select", "radio", "checkbox", "file"] as const;
 
 export type DynamicFormField = {
   id: string;
@@ -26,11 +26,10 @@ export function parseFormFields(value: string): DynamicFormField[] {
         label: candidate.label.trim().slice(0, 160),
         type: candidate.type,
         required: Boolean(candidate.required),
-        options: candidate.type === "select" ? options : undefined,
+        options: (candidate.type === "select" || candidate.type === "radio") ? (options && options.length ? options : ["Sim", "Não"]) : undefined,
       }];
     }).slice(0, 40);
   } catch {
     return [];
   }
 }
-

@@ -5,7 +5,7 @@ import { parseFormFields } from "@/lib/forms";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, { params }: RouteContext) {
-  if (Number(request.headers.get("content-length") || 0) > 64 * 1024) return NextResponse.json({ error: "Resposta muito grande." }, { status: 413 });
+  if (Number(request.headers.get("content-length") || 0) > 512 * 1024) return NextResponse.json({ error: "Resposta muito grande." }, { status: 413 });
   const { id } = await params;
   const campaign = await prisma.formCampaign.findFirst({
     where: { id, active: true, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
@@ -42,10 +42,18 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       const number = typeof value === "number" ? value : Number(value);
       if (!Number.isFinite(number)) return NextResponse.json({ error: `Informe um número válido em “${field.label}”.` }, { status: 400 });
       normalized[field.id] = number;
-    } else if (field.type === "select") {
+    } else if (field.type === "select" || field.type === "radio") {
       const selection = String(value);
-      if (!field.options?.includes(selection)) return NextResponse.json({ error: `Selecione uma opção válida em “${field.label}”.` }, { status: 400 });
+      if (field.required && field.options && !field.options.includes(selection)) {
+        return NextResponse.json({ error: `Selecione uma opção válida em “${field.label}”.` }, { status: 400 });
+      }
       normalized[field.id] = selection;
+    } else if (field.type === "file") {
+      const fileUrl = String(value);
+      if (field.required && !fileUrl) {
+        return NextResponse.json({ error: `Anexe o comprovante ou documento em “${field.label}”.` }, { status: 400 });
+      }
+      normalized[field.id] = fileUrl;
     } else {
       normalized[field.id] = String(value).slice(0, 2000);
     }
