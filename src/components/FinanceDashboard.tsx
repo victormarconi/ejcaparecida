@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { money, shortDate } from "@/lib/format";
 import { PdmModal, PdmConfirmModal } from "@/components/PdmModal";
-import { Plus } from "lucide-react";
+import { Plus, FolderArchive } from "lucide-react";
 
 export type FinanceRow = {
   id: string;
@@ -126,8 +126,15 @@ async function compressImageFile(file: File): Promise<Blob> {
 
 export function FinanceDashboard({ initialRows, referenceDate, canManage = false }: { initialRows: FinanceRow[]; referenceDate: string; canManage?: boolean }) {
   const [rows, setRows] = useState(initialRows);
-  const months = useMemo(() => getAllAvailableMonths(rows, referenceDate), [rows, referenceDate]);
-  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const allMonths = useMemo(() => getAllAvailableMonths(rows, referenceDate), [rows, referenceDate]);
+  const recentMonths = useMemo(() => allMonths.slice(0, 3), [allMonths]);
+  const recentKeys = useMemo(() => new Set(recentMonths.map((m) => m.key)), [recentMonths]);
+
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("recent3");
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyMonthFilter, setHistoryMonthFilter] = useState<string>("all");
+  const [reportMonth, setReportMonth] = useState<string>("all");
+
   const [view, setView] = useState<"cash" | "reports">("cash");
   const [form, setForm] = useState<FinanceForm>(() => emptyForm(referenceDate));
   const [editing, setEditing] = useState<string | null>(null);
@@ -140,19 +147,30 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
   const [error, setError] = useState("");
 
   const balance = rows.reduce((total, row) => total + (row.type === "INCOME" ? row.amountCents : -row.amountCents), 0);
-  const currentRows = selectedMonth === "all" ? rows : rows.filter((row) => monthKey(row.occurredAt) === selectedMonth);
+  const currentRows = useMemo(() => {
+    if (selectedPeriod === "recent3") {
+      return rows.filter((r) => recentKeys.has(monthKey(r.occurredAt)));
+    }
+    return rows.filter((r) => monthKey(r.occurredAt) === selectedPeriod);
+  }, [rows, selectedPeriod, recentKeys]);
+
   const displayIncome = currentRows.filter((row) => row.type === "INCOME").reduce((total, row) => total + row.amountCents, 0);
   const displayExpense = currentRows.filter((row) => row.type === "EXPENSE").reduce((total, row) => total + row.amountCents, 0);
-  const filteredRows = (selectedMonth === "all" ? rows : rows.filter((row) => monthKey(row.occurredAt) === selectedMonth)).sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
+  const filteredRows = [...currentRows].sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
 
-  const reportMonths = months.map((month) => {
+  const historyFilteredRows = useMemo(() => {
+    if (historyMonthFilter === "all") return [...rows].sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
+    return rows.filter((r) => monthKey(r.occurredAt) === historyMonthFilter).sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
+  }, [rows, historyMonthFilter]);
+
+  const reportMonths = allMonths.map((month) => {
     const items = rows.filter((row) => monthKey(row.occurredAt) === month.key);
     const income = items.filter((row) => row.type === "INCOME").reduce((total, row) => total + row.amountCents, 0);
     const expense = items.filter((row) => row.type === "EXPENSE").reduce((total, row) => total + row.amountCents, 0);
     return { ...month, income, expense, balance: income - expense };
   });
   const reportMaximum = Math.max(1, ...reportMonths.flatMap((month) => [month.income, month.expense]));
-  const categories = Object.entries(rows.filter((row) => (selectedMonth === "all" || monthKey(row.occurredAt) === selectedMonth) && row.type === "EXPENSE").reduce<Record<string, number>>((result, row) => {
+  const categories = Object.entries(rows.filter((row) => (reportMonth === "all" || monthKey(row.occurredAt) === reportMonth) && row.type === "EXPENSE").reduce<Record<string, number>>((result, row) => {
     const category = row.category || "Sem categoria";
     result[category] = (result[category] || 0) + row.amountCents;
     return result;
@@ -206,7 +224,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
         body: JSON.stringify(editing ? { ...payload, id: editing } : payload),
       }));
       setRows((current) => editing ? current.map((row) => row.id === editing ? body.item : row) : [body.item, ...current]);
-      setSelectedMonth(monthKey(body.item.occurredAt));
+      setSelectedPeriod(monthKey(body.item.occurredAt));
       clearForm();
       setModalOpen(false);
     } catch (reason) {
@@ -250,14 +268,14 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
         <small>Saldo acumulado em conta</small>
       </div>
       <div className="card kpi finance-income">
-        <span>📈 Entradas {selectedMonth === "all" ? "acumuladas" : "no período"}</span>
+        <span>📈 Entradas {selectedPeriod === "recent3" ? "(3 meses)" : "no mês"}</span>
         <strong>{money(displayIncome)}</strong>
-        <small>{selectedMonth === "all" ? "Total desde Abril/2026" : months.find(m => m.key === selectedMonth)?.label || "Mês selecionado"}</small>
+        <small>{selectedPeriod === "recent3" ? "Últimos 3 meses" : recentMonths.find(m => m.key === selectedPeriod)?.label || "Mês selecionado"}</small>
       </div>
       <div className="card kpi finance-expense">
-        <span>📉 Saídas {selectedMonth === "all" ? "acumuladas" : "no período"}</span>
+        <span>📉 Saídas {selectedPeriod === "recent3" ? "(3 meses)" : "no mês"}</span>
         <strong>{money(displayExpense)}</strong>
-        <small>{selectedMonth === "all" ? "Total desde Abril/2026" : months.find(m => m.key === selectedMonth)?.label || "Mês selecionado"}</small>
+        <small>{selectedPeriod === "recent3" ? "Últimos 3 meses" : recentMonths.find(m => m.key === selectedPeriod)?.label || "Mês selecionado"}</small>
       </div>
     </div>
 
@@ -396,30 +414,39 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     {view === "cash" && <>
 
       <section className="finance-history">
-        <div className="section-heading compact">
+        <div className="section-heading compact" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
           <div>
-            <span className="eyebrow">Histórico Completo</span>
-            <h2>Extrato de Lançamentos</h2>
+            <span className="eyebrow">Histórico Recente</span>
+            <h2>Últimos 3 Meses</h2>
           </div>
-          <p>Consulte todos os lançamentos desde Abril de 2026 ou filtre por mês específico.</p>
+          <button
+            type="button"
+            className="pdm-btn-secondary pdm-btn-compact"
+            onClick={() => setHistoryModalOpen(true)}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            <FolderArchive size={15} />
+            <span>Ver Histórico Completo ({rows.length})</span>
+          </button>
         </div>
-        <div className="month-tabs" role="tablist" aria-label="Mês do histórico">
+
+        <div className="month-tabs" role="tablist" aria-label="Mês do histórico" style={{ margin: "14px 0" }}>
           <button
             type="button"
             role="tab"
-            aria-selected={selectedMonth === "all"}
-            onClick={() => setSelectedMonth("all")}
+            aria-selected={selectedPeriod === "recent3"}
+            onClick={() => setSelectedPeriod("recent3")}
           >
-            Todos os Meses ({rows.length})
+            Últimos 3 Meses ({rows.filter(r => recentKeys.has(monthKey(r.occurredAt))).length})
           </button>
-          {months.map((month) => {
+          {recentMonths.map((month) => {
             const count = rows.filter((r) => monthKey(r.occurredAt) === month.key).length;
             return (
               <button
                 type="button"
                 role="tab"
-                aria-selected={selectedMonth === month.key}
-                onClick={() => setSelectedMonth(month.key)}
+                aria-selected={selectedPeriod === month.key}
+                onClick={() => setSelectedPeriod(month.key)}
                 key={month.key}
               >
                 {month.label} ({count})
@@ -465,7 +492,7 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       <div className="section-heading compact"><div><span className="eyebrow">Relatórios</span><h2>Comparativo financeiro</h2></div><p>Análise separada do lançamento e do histórico diário.</p></div>
       <div className="grid two reports-grid">
         <article className="card"><h3>Entradas e saídas</h3><div className="report-bars">{reportMonths.map((month) => <div className="report-month" key={month.key}><strong>{month.label}</strong><div><span>Entradas</span><div className="bar-track"><i className="bar income" style={{ width: `${month.income / reportMaximum * 100}%` }} /></div><b>{money(month.income)}</b></div><div><span>Saídas</span><div className="bar-track"><i className="bar expense" style={{ width: `${month.expense / reportMaximum * 100}%` }} /></div><b>{money(month.expense)}</b></div><small>Resultado: <span className={month.balance >= 0 ? "positive-text" : "negative-text"}>{money(month.balance)}</span></small></div>)}</div></article>
-        <article className="card"><div className="report-card-heading"><h3>Saídas por categoria</h3><select aria-label="Mês das categorias" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>{months.map((month) => <option value={month.key} key={month.key}>{month.label}</option>)}</select></div><div className="category-report">{categories.map(([category, total]) => <div key={category}><span>{category}</span><div className="bar-track"><i className="bar expense" style={{ width: `${total / categoryMaximum * 100}%` }} /></div><strong>{money(total)}</strong></div>)}</div>{!categories.length && <div className="empty">Sem despesas categorizadas neste mês.</div>}</article>
+        <article className="card"><div className="report-card-heading"><h3>Saídas por categoria</h3><select aria-label="Mês das categorias" value={reportMonth} onChange={(event) => setReportMonth(event.target.value)}>{allMonths.map((month) => <option value={month.key} key={month.key}>{month.label}</option>)}</select></div><div className="category-report">{categories.map(([category, total]) => <div key={category}><span>{category}</span><div className="bar-track"><i className="bar expense" style={{ width: `${total / categoryMaximum * 100}%` }} /></div><strong>{money(total)}</strong></div>)}</div>{!categories.length && <div className="empty">Sem despesas categorizadas neste mês.</div>}</article>
       </div>
     </section>}
 
@@ -473,6 +500,132 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={modalReceipt} alt="Comprovante fiscal ampliado" />
     </div></div>}
+
+    
+    {/* MODAL PADRÃO PDM1 DE HISTÓRICO COMPLETO */}
+    <PdmModal
+      open={historyModalOpen}
+      onClose={() => setHistoryModalOpen(false)}
+      title="Histórico Financeiro Completo"
+      subtitle={`Consulta aos ${rows.length} lançamentos desde Abril de 2026.`}
+      maxWidth="840px"
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        {/* Abas compactas por mês dentro do modal */}
+        <div className="month-tabs" style={{ margin: 0 }}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={historyMonthFilter === "all"}
+            onClick={() => setHistoryMonthFilter("all")}
+          >
+            Todos ({rows.length})
+          </button>
+          {allMonths.map((m) => {
+            const c = rows.filter((r) => monthKey(r.occurredAt) === m.key).length;
+            return (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={historyMonthFilter === m.key}
+                onClick={() => setHistoryMonthFilter(m.key)}
+                key={m.key}
+              >
+                {m.label} ({c})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tabela com scroll suave no modal */}
+        <div style={{ maxHeight: "420px", overflowY: "auto", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px" }}>
+          <table className="compact-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+            <thead>
+              <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+                <th style={{ padding: "8px 12px", textAlign: "left" }}>Data</th>
+                <th style={{ padding: "8px 12px", textAlign: "left" }}>Categoria</th>
+                <th style={{ padding: "8px 12px", textAlign: "left" }}>Descrição</th>
+                <th style={{ padding: "8px 12px", textAlign: "left" }}>Valor</th>
+                <th style={{ padding: "8px 12px", textAlign: "left" }}>Foto</th>
+                {canManage && <th style={{ padding: "8px 12px", textAlign: "right" }}>Ações</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {historyFilteredRows.map((row) => (
+                <tr key={row.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                  <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>{shortDate(row.occurredAt)}</td>
+                  <td style={{ padding: "8px 12px" }}>{row.category || "—"}</td>
+                  <td style={{ padding: "8px 12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <strong style={{ color: "#fff" }}>{row.title}</strong>
+                      {row.description?.includes("[Editado em") && (
+                        <span className="pdm-badge" style={{ fontSize: "0.66rem", background: "rgba(234, 179, 8, 0.12)", color: "#facc15" }}>
+                          ✏️ Editado
+                        </span>
+                      )}
+                    </div>
+                    {row.description && <small style={{ color: "#94a3b8" }}>{row.description}</small>}
+                  </td>
+                  <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
+                    <span className={`finance-value ${row.type === "INCOME" ? "positive" : "negative"}`}>
+                      {row.type === "INCOME" ? "+" : "−"}{money(row.amountCents)}
+                    </span>
+                  </td>
+                  <td style={{ padding: "8px 12px" }}>
+                    {row.receiptUrl ? (
+                      <button
+                        className="table-action-btn"
+                        type="button"
+                        style={{ background: "rgba(56, 189, 248, 0.12)", color: "#38bdf8" }}
+                        onClick={() => setModalReceipt(row.receiptUrl)}
+                      >
+                        📷 Ver
+                      </button>
+                    ) : "—"}
+                  </td>
+                  {canManage && (
+                    <td style={{ padding: "8px 12px", textAlign: "right" }}>
+                      <div style={{ display: "inline-flex", gap: "6px" }}>
+                        <button
+                          className="table-action-btn edit"
+                          type="button"
+                          onClick={() => {
+                            setHistoryModalOpen(false);
+                            edit(row);
+                          }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          className="table-action-btn delete"
+                          type="button"
+                          onClick={() => {
+                            setHistoryModalOpen(false);
+                            setDeletingRow(row);
+                          }}
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            className="pdm-btn-secondary pdm-btn-compact"
+            onClick={() => setHistoryModalOpen(false)}
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </PdmModal>
 
     {/* CONFIRMAÇÃO DE EXCLUSÃO PADRÃO PDM1 */}
     <PdmConfirmModal
