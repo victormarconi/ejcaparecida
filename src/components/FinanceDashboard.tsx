@@ -277,22 +277,60 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     }
   }
 
+  
+  const currentMonthKey = recentMonths[0]?.key || monthKey(referenceDate);
+  const currentMonthLabel = recentMonths[0]?.label || "Mês atual";
+
+  const monthRows = useMemo(
+    () => rows.filter((r) => monthKey(r.occurredAt) === currentMonthKey),
+    [rows, currentMonthKey]
+  );
+
+  const monthIncome = useMemo(
+    () => monthRows.filter((r) => r.type === "INCOME").reduce((s, r) => s + r.amountCents, 0),
+    [monthRows]
+  );
+
+  const monthExpense = useMemo(
+    () => monthRows.filter((r) => r.type === "EXPENSE").reduce((s, r) => s + r.amountCents, 0),
+    [monthRows]
+  );
+
+  const monthResult = monthIncome - monthExpense;
+
+  const totalIncome = useMemo(
+    () => rows.filter((r) => r.type === "INCOME").reduce((s, r) => s + r.amountCents, 0),
+    [rows]
+  );
+
   return <>
-    <div className="grid three finance-kpis">
+    <div className="finance-kpis">
       <div className="card kpi finance-balance">
         <span>💰 Caixa atual</span>
         <strong>{money(balance)}</strong>
-        <small>Saldo acumulado em conta</small>
+        <small>Saldo acumulado</small>
       </div>
       <div className="card kpi finance-income">
-        <span>📈 Entradas {selectedPeriod === "recent3" ? "(3 meses)" : "no mês"}</span>
-        <strong>{money(displayIncome)}</strong>
-        <small>{selectedPeriod === "recent3" ? "Últimos 3 meses" : recentMonths.find(m => m.key === selectedPeriod)?.label || "Mês selecionado"}</small>
+        <span>📈 Entradas</span>
+        <strong>{money(monthIncome)}</strong>
+        <small>{currentMonthLabel}</small>
       </div>
       <div className="card kpi finance-expense">
-        <span>📉 Saídas {selectedPeriod === "recent3" ? "(3 meses)" : "no mês"}</span>
-        <strong>{money(displayExpense)}</strong>
-        <small>{selectedPeriod === "recent3" ? "Últimos 3 meses" : recentMonths.find(m => m.key === selectedPeriod)?.label || "Mês selecionado"}</small>
+        <span>📉 Saídas</span>
+        <strong>{money(monthExpense)}</strong>
+        <small>{currentMonthLabel}</small>
+      </div>
+      <div className="card kpi finance-result">
+        <span>⚖️ Resultado</span>
+        <strong style={{ color: monthResult >= 0 ? "#34d399" : "#f87171" }}>
+          {monthResult >= 0 ? "+" : "−"}{money(Math.abs(monthResult))}
+        </strong>
+        <small>{currentMonthLabel}</small>
+      </div>
+      <div className="card kpi finance-total">
+        <span>💎 Total Entradas</span>
+        <strong>{money(totalIncome)}</strong>
+        <small>Desde abril de 2026</small>
       </div>
     </div>
 

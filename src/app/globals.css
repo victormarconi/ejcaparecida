@@ -196,13 +196,61 @@ tr:last-child td { border-bottom: 0; }
 .mass-schedule strong { display: block; margin-bottom: 5px; font-size: .8rem; text-transform: uppercase; letter-spacing: .07em; }
 .mass-schedule p { margin: 0; white-space: pre-line; color: var(--muted); }
 
-.finance-kpis { margin-bottom: 6px; }
-.finance-kpis .kpi { padding: 20px; }
-.finance-kpis .kpi strong { margin: 5px 0 2px; font-size: clamp(1.55rem, 3vw, 2.2rem); }
-.finance-kpis .kpi small { color: var(--muted); text-transform: capitalize; }
-.finance-income { border-top: 3px solid #16825f; }
-.finance-expense { border-top: 3px solid var(--danger); }
-.finance-balance { border-top: 3px solid var(--brand); }
+.finance-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+@media (max-width: 1080px) {
+  .finance-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .finance-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.finance-kpis .kpi {
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.finance-kpis .kpi span {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.finance-kpis .kpi strong {
+  margin: 2px 0 1px !important;
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+  color: #f8fafc;
+  white-space: nowrap;
+}
+.finance-kpis .kpi small {
+  color: #64748b;
+  font-size: 0.72rem;
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.finance-balance { border-top: 2px solid #0284c7 !important; }
+.finance-income { border-top: 2px solid #10b981 !important; }
+.finance-expense { border-top: 2px solid #f87171 !important; }
+.finance-result { border-top: 2px solid #a855f7 !important; }
+.finance-total { border-top: 2px solid #eab308 !important; }
 .finance-form { gap: 18px; margin-bottom: 36px; }
 .finance-form-main > .field:nth-child(2) { flex-grow: 2; }
 .receipt-input { min-width: 250px; }
