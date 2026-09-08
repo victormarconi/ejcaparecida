@@ -14,14 +14,5 @@ export default async function LocationsAdminPage() {
     updatedAt: item.updatedAt.toISOString(),
   }));
 
-  return (
-    <>
-      <header className="page-heading">
-        <span className="eyebrow">Site Público</span>
-        <h1>Localizações</h1>
-        <p>Gerencie a paróquia matriz, comunidades, endereços e mapas interativos do Google.</p>
-      </header>
-      <LocationsManager initialLocations={rows} />
-    </>
-  );
+  return <LocationsManager initialLocations={rows} />;
 }

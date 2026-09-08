@@ -25,14 +25,5 @@ export default async function EstoqueAdminPage() {
     returnedAt: r.returnedAt?.toISOString() || null,
   }));
 
-  return (
-    <>
-      <header className="page-heading">
-        <span className="eyebrow">Patrimônio e Materiais</span>
-        <h1>Estoque</h1>
-        <p>Controle unificado de itens materiais, quantidades e saídas/empréstimos.</p>
-      </header>
-      <EstoqueManager initialItems={items} initialRentals={rentals} />
-    </>
-  );
+  return <EstoqueManager initialItems={items} initialRentals={rentals} />;
 }

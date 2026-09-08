@@ -14,14 +14,5 @@ export default async function TeamAdminPage() {
     updatedAt: item.updatedAt.toISOString(),
   }));
 
-  return (
-    <>
-      <header className="page-heading">
-        <span className="eyebrow">Pessoas & Liderança</span>
-        <h1>Equipe Dirigente</h1>
-        <p>Organize nomes, funções, fotos recortadas e ordem de exibição.</p>
-      </header>
-      <TeamManager initialMembers={rows} />
-    </>
-  );
+  return <TeamManager initialMembers={rows} />;
 }

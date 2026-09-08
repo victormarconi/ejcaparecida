@@ -16,33 +16,54 @@ export type EventItem = {
   updatedAt: string;
 };
 
+const timeZone = "America/Fortaleza";
+
+function zonedParts(value: string | Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(value));
+  return Object.fromEntries(parts.map((p) => [p.type, p.value]));
+}
+
+function dateKey(value: string | Date) {
+  const p = zonedParts(value);
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
 function formatTime(iso: string) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "--:--";
-  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
 }
 
 function formatDate(iso: string) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "Data inválida";
-  return d.toLocaleDateString("pt-BR", {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone,
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  });
+  }).format(d);
 }
 
 function toLocalInput(iso?: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hours = String(d.getHours()).padStart(2, "0");
-  const mins = String(d.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${mins}`;
+  const p = zonedParts(d);
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
 
 export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] }) {
@@ -199,14 +220,7 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
 
   // Events of selected day for the modal
   const dayModalEvents = selectedDay
-    ? events.filter((ev) => {
-        const evDate = new Date(ev.startsAt);
-        return (
-          evDate.getFullYear() === year &&
-          evDate.getMonth() === month &&
-          evDate.getDate() === selectedDay.dayNum
-        );
-      })
+    ? events.filter((ev) => dateKey(ev.startsAt) === selectedDay.dateStr)
     : [];
 
   return (
@@ -350,20 +364,9 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
               const dayNum = idx + 1;
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
 
-              // Filtrar eventos deste dia
-              const dayEvents = events.filter((ev) => {
-                const evDate = new Date(ev.startsAt);
-                return (
-                  evDate.getFullYear() === year &&
-                  evDate.getMonth() === month &&
-                  evDate.getDate() === dayNum
-                );
-              });
-
-              const isToday =
-                new Date().getFullYear() === year &&
-                new Date().getMonth() === month &&
-                new Date().getDate() === dayNum;
+              // Filtrar eventos deste dia usando fuso America/Fortaleza consistente em SSR e cliente
+              const dayEvents = events.filter((ev) => dateKey(ev.startsAt) === dateStr);
+              const isToday = dateStr === dateKey(new Date());
 
               const hasEvents = dayEvents.length > 0;
 
@@ -372,6 +375,8 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                   key={dayNum}
                   style={{
                     minHeight: "88px",
+                    minWidth: 0,
+                    overflow: "hidden",
                     background: isToday
                       ? "rgba(2, 132, 199, 0.07)"
                       : hasEvents
@@ -480,15 +485,16 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                               : "1px solid rgba(168, 85, 247, 0.25)",
                           display: "flex",
                           alignItems: "center",
-                          gap: "4px",
+                          gap: "5px",
+                          width: "100%",
+                          minWidth: 0,
+                          maxWidth: "100%",
                           overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
                           lineHeight: 1.2,
                         }}
                       >
-                        <strong style={{ flexShrink: 0 }}>{formatTime(ev.startsAt)}</strong>
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <strong style={{ flexShrink: 0, fontSize: "0.70rem" }}>{formatTime(ev.startsAt)}</strong>
+                        <span style={{ minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
                           {ev.title}
                         </span>
                       </div>

@@ -16,14 +16,5 @@ export default async function EventsAdminPage() {
     updatedAt: item.updatedAt.toISOString(),
   }));
 
-  return (
-    <>
-      <header className="page-heading">
-        <span className="eyebrow">Agenda & Encontros</span>
-        <h1>Calendário</h1>
-        <p>Cadastre eventos públicos e compromissos internos com visão mensal e horários formatados.</p>
-      </header>
-      <CalendarManager initialEvents={rows} />
-    </>
-  );
+  return <CalendarManager initialEvents={rows} />;
 }
