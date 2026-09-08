@@ -46,11 +46,13 @@ function inputDate(value: string | Date) {
 }
 
 function getAllAvailableMonths(rows: FinanceRow[], referenceDate: string) {
-  const monthMap = new Map<string, string>();
+  const monthMap = new Map<string, { label: string; shortLabel: string }>();
   
   const currentKey = monthKey(referenceDate);
-  const currentLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(referenceDate));
-  monthMap.set(currentKey, currentLabel);
+  const currentD = new Date(referenceDate);
+  const currentLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(currentD);
+  const currentShort = new Intl.DateTimeFormat("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).format(currentD).replace(".", "");
+  monthMap.set(currentKey, { label: currentLabel, shortLabel: currentShort });
 
   for (const row of rows) {
     const key = monthKey(row.occurredAt);
@@ -58,13 +60,14 @@ function getAllAvailableMonths(rows: FinanceRow[], referenceDate: string) {
       const [year, month] = key.split("-").map(Number);
       const d = new Date(Date.UTC(year, month - 1, 1));
       const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(d);
-      monthMap.set(key, label);
+      const shortLabel = new Intl.DateTimeFormat("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).format(d).replace(".", "");
+      monthMap.set(key, { label, shortLabel });
     }
   }
 
   return Array.from(monthMap.entries())
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([key, label]) => ({ key, label }));
+    .map(([key, val]) => ({ key, label: val.label, shortLabel: val.shortLabel }));
 }
 
 function emptyForm(referenceDate: string): FinanceForm {
@@ -602,8 +605,9 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
                   aria-selected={selectedPeriod === month.key}
                   onClick={() => setSelectedPeriod(month.key)}
                   key={month.key}
+                  style={{ textTransform: "capitalize" }}
                 >
-                  {month.label} ({count})
+                  {month.shortLabel} ({count})
                 </button>
               );
             })}
