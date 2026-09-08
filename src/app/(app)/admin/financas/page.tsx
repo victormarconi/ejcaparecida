@@ -11,12 +11,19 @@ export default async function FinanceAdminPage() {
   // Demais usuários (ex: equipe) têm acesso exclusivo de visualização/consulta.
   const canManage = user.username === "financas" || user.email === "financas@ejc.local";
 
-  const rows = (await prisma.financeEntry.findMany({ orderBy: { occurredAt: "desc" } })).map((item) => ({
+  const [entries, pixSetting] = await Promise.all([
+    prisma.financeEntry.findMany({ orderBy: { occurredAt: "desc" } }),
+    prisma.systemSetting.findUnique({ where: { key: "pix_chave" } }),
+  ]);
+
+  const rows = entries.map((item) => ({
     ...item,
     occurredAt: item.occurredAt.toISOString(),
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
   }));
+
+  const initialPixKey = pixSetting?.value || "ejcaparecida2000@gmail.com";
 
   return (
     <>
@@ -29,7 +36,12 @@ export default async function FinanceAdminPage() {
             : "Consulta ao fluxo de caixa, saldo atual e relatórios financeiros (Modo Visualização)."}
         </p>
       </header>
-      <FinanceDashboard initialRows={rows} referenceDate={new Date().toISOString()} canManage={canManage} />
+      <FinanceDashboard
+        initialRows={rows}
+        referenceDate={new Date().toISOString()}
+        canManage={canManage}
+        initialPixKey={initialPixKey}
+      />
     </>
   );
 }

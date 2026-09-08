@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { money, shortDate } from "@/lib/format";
 import { PdmModal, PdmConfirmModal } from "@/components/PdmModal";
-import { Plus, FolderArchive } from "lucide-react";
+import { Plus, FolderArchive, QrCode } from "lucide-react";
 
 export type FinanceRow = {
   id: string;
@@ -124,7 +124,7 @@ async function compressImageFile(file: File): Promise<Blob> {
   });
 }
 
-export function FinanceDashboard({ initialRows, referenceDate, canManage = false }: { initialRows: FinanceRow[]; referenceDate: string; canManage?: boolean }) {
+export function FinanceDashboard({ initialRows, referenceDate, canManage = false, initialPixKey = "ejcaparecida2000@gmail.com" }: { initialRows: FinanceRow[]; referenceDate: string; canManage?: boolean; initialPixKey?: string }) {
   const [rows, setRows] = useState(initialRows);
   const allMonths = useMemo(() => getAllAvailableMonths(rows, referenceDate), [rows, referenceDate]);
   const recentMonths = useMemo(() => allMonths.slice(0, 3), [allMonths]);
@@ -135,6 +135,15 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
   const [historyMonthFilter, setHistoryMonthFilter] = useState<string>("all");
   const [reportMonth, setReportMonth] = useState<string>(() => recentMonths[0]?.key || "");
   const [reportCategoryTab, setReportCategoryTab] = useState<"EXPENSE" | "INCOME">("EXPENSE");
+
+  
+  // PIX Modal State
+  const [pixModalOpen, setPixModalOpen] = useState(false);
+  const [currentPixKey, setCurrentPixKey] = useState(initialPixKey);
+  const [pixInput, setPixInput] = useState(initialPixKey);
+  const [pixBeneficiary, setPixBeneficiary] = useState("Paróquia Nossa Senhora Aparecida");
+  const [savingPix, setSavingPix] = useState(false);
+  const [pixSuccess, setPixSuccess] = useState(false);
 
   const [view, setView] = useState<"cash" | "reports">("cash");
   const [form, setForm] = useState<FinanceForm>(() => emptyForm(referenceDate));
@@ -261,6 +270,32 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  
+  async function handleSavePix(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingPix(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/configuracoes/pix", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pixKey: pixInput.trim(), beneficiary: pixBeneficiary.trim() }),
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || "Falha ao salvar chave PIX.");
+      setCurrentPixKey(resData.pixKey);
+      setPixSuccess(true);
+      setTimeout(() => {
+        setPixSuccess(false);
+        setPixModalOpen(false);
+      }, 1200);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar chave PIX.");
+    } finally {
+      setSavingPix(false);
+    }
+  }
+
   async function remove(row: FinanceRow) {
     if (!window.confirm(`Excluir o lançamento “${row.title}”?`)) return;
     setBusy(true);
@@ -339,19 +374,35 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
         <button type="button" role="tab" aria-selected={view === "cash"} onClick={() => setView("cash")}>Fluxo de caixa</button>
         <button type="button" role="tab" aria-selected={view === "reports"} onClick={() => setView("reports")}>Relatórios</button>
       </div>
-      {canManage && view === "cash" && (
-        <button
-          type="button"
-          className="pdm-btn-primary pdm-btn-compact"
-          onClick={() => {
-            clearForm();
-            setModalOpen(true);
-          }}
-          style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-        >
-          <Plus size={16} />
-          <span>Novo lançamento</span>
-        </button>
+      {canManage && (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button
+            type="button"
+            className="pdm-btn-secondary pdm-btn-compact"
+            onClick={() => {
+              setPixInput(currentPixKey);
+              setError("");
+              setPixModalOpen(true);
+            }}
+            title="Alterar chave PIX da paróquia exibida no site oficial"
+          >
+            <QrCode size={15} />
+            <span>Chave PIX Oficial</span>
+          </button>
+          {view === "cash" && (
+            <button
+              type="button"
+              className="pdm-btn-primary pdm-btn-compact"
+              onClick={() => {
+                clearForm();
+                setModalOpen(true);
+              }}
+            >
+              <Plus size={16} />
+              <span>Novo lançamento</span>
+            </button>
+          )}
+        </div>
       )}
     </div>
 
@@ -659,6 +710,64 @@ export function FinanceDashboard({ initialRows, referenceDate, canManage = false
     </div></div>}
 
     
+    
+    {/* MODAL PADRÃO PDM1 DE CONFIGURAÇÃO DA CHAVE PIX */}
+    <PdmModal
+      open={pixModalOpen}
+      onClose={() => setPixModalOpen(false)}
+      title="Chave PIX da Paróquia"
+      subtitle="Defina a chave oficial para doações exibida na página pública e campanhas."
+      maxWidth="500px"
+    >
+      <form onSubmit={handleSavePix} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div style={{ background: "rgba(2, 132, 199, 0.08)", padding: "12px 14px", borderRadius: "10px", border: "1px solid rgba(2, 132, 199, 0.2)", display: "flex", alignItems: "center", gap: "10px" }}>
+          <QrCode size={24} style={{ color: "#38bdf8", flexShrink: 0 }} />
+          <div style={{ fontSize: "0.82rem", color: "#cbd5e1" }}>
+            Chave atual no site público: <strong style={{ color: "#38bdf8" }}>{currentPixKey}</strong>
+          </div>
+        </div>
+
+        <label className="field">
+          Chave PIX Oficial *
+          <input
+            required
+            placeholder="Ex: email@paroquia.com, telefone ou chave aleatória"
+            value={pixInput}
+            onChange={(e) => setPixInput(e.target.value)}
+          />
+        </label>
+
+        <label className="field">
+          Beneficiário / Nome da Conta
+          <input
+            placeholder="Ex: Paróquia Nossa Senhora Aparecida"
+            value={pixBeneficiary}
+            onChange={(e) => setPixBeneficiary(e.target.value)}
+          />
+        </label>
+
+        {error && <p className="error" role="alert">{error}</p>}
+        {pixSuccess && <p style={{ margin: 0, padding: "8px 12px", background: "rgba(16, 185, 129, 0.15)", color: "#34d399", borderRadius: "8px", fontSize: "0.84rem", fontWeight: 600 }}>✓ Chave PIX atualizada com sucesso no site oficial!</p>}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+          <button
+            type="button"
+            className="pdm-btn-secondary pdm-btn-compact"
+            onClick={() => setPixModalOpen(false)}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="pdm-btn-primary pdm-btn-compact"
+            disabled={savingPix}
+          >
+            {savingPix ? "Salvando..." : "Salvar Chave PIX"}
+          </button>
+        </div>
+      </form>
+    </PdmModal>
+
     {/* MODAL PADRÃO PDM1 DE HISTÓRICO COMPLETO */}
     <PdmModal
       open={historyModalOpen}

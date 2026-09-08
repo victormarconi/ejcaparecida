@@ -16,7 +16,7 @@ function initials(name: string) {
 
 export default async function HomePage() {
   const now = new Date();
-  const [campaign, notices, events, team, locations] = await Promise.all([
+  const [campaign, notices, events, team, locations, pixSetting] = await Promise.all([
     prisma.formCampaign.findFirst({
       where: { active: true, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
       orderBy: { createdAt: "desc" },
@@ -29,7 +29,9 @@ export default async function HomePage() {
     prisma.event.findMany({ where: { visibility: "PUBLIC" }, orderBy: { startsAt: "asc" }, take: 500 }),
     prisma.teamMember.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     prisma.location.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
+    prisma.systemSetting.findUnique({ where: { key: "pix_chave" } }),
   ]);
+  const pixKey = pixSetting?.value || "ejcaparecida2000@gmail.com";
   const campaignFields = campaign ? parseFormFields(campaign.fieldsJson) : [];
   const serializedEvents = events.map((event) => ({
     id: event.id,
@@ -82,7 +84,7 @@ export default async function HomePage() {
 
     <section className="section alt"><div className="container donation">
       <div className="card"><span className="eyebrow">Doação</span><h2>Apoie a missão do EJC</h2><p>Quem desejar contribuir com a caminhada do grupo pode fazer uma doação pelo PIX.</p></div>
-      <div className="card pix-card"><span>PIX</span><strong>ejcaparecida2000@gmail.com</strong><CopyPix value="ejcaparecida2000@gmail.com" /></div>
+      <div className="card pix-card"><span>PIX</span><strong>{pixKey}</strong><CopyPix value={pixKey} /></div>
     </div></section>
 
     <section className="section" id="instagram"><div className="container">

@@ -240,3 +240,11 @@ model ActivityLog {
 
   @@map("logs_atividade")
 }
+
+model SystemSetting {
+  key       String   @id @map("chave")
+  value     String   @map("valor") @db.Text
+  updatedAt DateTime @updatedAt @map("atualizado_em")
+
+  @@map("configuracoes")
+}
