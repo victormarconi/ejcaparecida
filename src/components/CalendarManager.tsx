@@ -87,13 +87,11 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
     setLocation("");
     if (prefillDate) {
       setStartsAt(`${prefillDate}T19:00`);
-      setEndsAt(`${prefillDate}T21:00`);
     } else {
       const now = new Date();
       setStartsAt(toLocalInput(now.toISOString()));
-      const later = new Date(now.getTime() + 2 * 3600000);
-      setEndsAt(toLocalInput(later.toISOString()));
     }
+    setEndsAt("");
     setVisibility("PUBLIC");
     setError("");
     setModalOpen(true);
@@ -122,7 +120,7 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
         description: description.trim() || null,
         location: location.trim() || null,
         startsAt: new Date(startsAt).toISOString(),
-        endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+        endsAt: null,
         visibility,
       };
 
@@ -541,7 +539,6 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                           <Clock size={12} />
                           <span>
                             {formatTime(ev.startsAt)}
-                            {ev.endsAt && ` até ${formatTime(ev.endsAt)}`}
                           </span>
                         </div>
                       </div>
@@ -668,7 +665,6 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                       >
                         <Clock size={13} />
                         {formatTime(ev.startsAt)}
-                        {ev.endsAt && ` às ${formatTime(ev.endsAt)}`}
                       </span>
 
                       {ev.location && (
@@ -772,9 +768,9 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
             />
           </label>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: "12px" }}>
             <label className="field">
-              Início (Data & Hora) *
+              Data & Horário *
               <input
                 type="datetime-local"
                 required
@@ -783,17 +779,6 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
               />
             </label>
             <label className="field">
-              Término Previsto
-              <input
-                type="datetime-local"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-              />
-            </label>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: "12px" }}>
-            <label className="field">
               Local do Evento
               <input
                 placeholder="Ex: Salão Paroquial / Igreja Matriz"
@@ -801,17 +786,18 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                 onChange={(e) => setLocation(e.target.value)}
               />
             </label>
-            <label className="field">
-              Visibilidade *
-              <select
-                value={visibility}
-                onChange={(e) => setVisibility(e.target.value as "PUBLIC" | "MEMBERS")}
-              >
-                <option value="PUBLIC">Público (Visível no site)</option>
-                <option value="MEMBERS">Apenas Membros Internos</option>
-              </select>
-            </label>
           </div>
+
+          <label className="field">
+            Visibilidade do Evento *
+            <select
+              value={visibility}
+              onChange={(e) => setVisibility(e.target.value as "PUBLIC" | "MEMBERS")}
+            >
+              <option value="PUBLIC">Público (Visível no site)</option>
+              <option value="MEMBERS">Apenas Membros Internos</option>
+            </select>
+          </label>
 
           <label className="field">
             Descrição / Pauta
