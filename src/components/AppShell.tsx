@@ -42,10 +42,9 @@ export function AppShell({
       title: "Gestão & Paróquia",
       items: [
         {
-          label: isFinanceUser ? "Finanças (Gestão)" : "Finanças (Consulta)",
+          label: "Finanças",
           href: "/admin/financas",
           icon: DollarSign,
-          badge: isFinanceUser ? "Gestor" : "Consulta",
         },
         { label: "Avisos & Murais", href: "/admin/avisos", icon: Bell },
         { label: "Equipe & Liderança", href: "/admin/equipe", icon: Users },
@@ -72,7 +71,7 @@ export function AppShell({
             />
             <div className="brand-text">
               <span className="brand-title">EJC Aparecida</span>
-              <span className="brand-badge">Gestão Oficial</span>
+              <span className="brand-badge">Painel Oficial</span>
             </div>
           </Link>
         </div>
@@ -97,15 +96,7 @@ export function AppShell({
                     >
                       <Icon size={18} className="nav-icon" />
                       <span className="nav-label">{item.label}</span>
-                      {item.badge && (
-                        <span
-                          className={`nav-badge ${
-                            item.badge === "Gestor" ? "badge-emerald" : "badge-sky"
-                          }`}
-                        >
-                          {item.badge}
-                        </span>
-                      )}
+
                     </Link>
                   );
                 })}
@@ -138,8 +129,8 @@ export function AppShell({
               <span className="user-name">{user.name}</span>
               <span className="user-role">
                 {user.username === "financas"
-                  ? "Acesso Financeiro"
-                  : "Equipe Geral"}
+                  ? "Financeiro"
+                  : "Equipe"}
               </span>
             </div>
           </div>

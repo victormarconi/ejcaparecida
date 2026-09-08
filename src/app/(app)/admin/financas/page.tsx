@@ -21,7 +21,7 @@ export default async function FinanceAdminPage() {
   return (
     <>
       <header className="page-heading">
-        <span className="eyebrow">{canManage ? "Gestão Ativa" : "Transparência & Consulta"}</span>
+        <span className="eyebrow">{canManage ? "Controle" : "Transparência"}</span>
         <h1>Finanças</h1>
         <p>
           {canManage
