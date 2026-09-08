@@ -183,10 +183,11 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
   const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const monthLabel = currentMonth.toLocaleDateString("pt-BR", {
+  const rawMonthLabel = currentMonth.toLocaleDateString("pt-BR", {
     month: "long",
     year: "numeric",
   });
+  const monthLabel = rawMonthLabel.charAt(0).toUpperCase() + rawMonthLabel.slice(1);
 
   function prevMonth() {
     setCurrentMonth(new Date(year, month - 1, 1));
@@ -273,7 +274,7 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
               marginBottom: "18px",
             }}
           >
-            <h3 style={{ margin: 0, textTransform: "capitalize", fontSize: "1.15rem", color: "#fff", fontWeight: 700 }}>
+            <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#fff", fontWeight: 700, letterSpacing: "-0.01em" }}>
               {monthLabel}
             </h3>
             <div style={{ display: "flex", gap: "6px" }}>
@@ -312,7 +313,8 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                 style={{
                   fontSize: "0.78rem",
                   fontWeight: 700,
-                  color: "#94a3b8",
+                  color: "#64748b",
+                  letterSpacing: "0.06em",
                   padding: "6px 0",
                   textTransform: "uppercase",
                 }}
@@ -369,21 +371,22 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                 <div
                   key={dayNum}
                   style={{
-                    minHeight: "95px",
+                    minHeight: "88px",
                     background: isToday
-                      ? "rgba(2, 132, 199, 0.09)"
+                      ? "rgba(2, 132, 199, 0.07)"
                       : hasEvents
                       ? "rgba(56, 189, 248, 0.04)"
                       : "rgba(255, 255, 255, 0.02)",
                     border: isToday
                       ? "1px solid #0284c7"
                       : hasEvents
-                      ? "1px solid rgba(56, 189, 248, 0.25)"
+                      ? "1px solid rgba(56, 189, 248, 0.3)"
                       : "1px solid rgba(255, 255, 255, 0.06)",
-                    borderRadius: "10px",
-                    padding: "6px 8px",
+                    borderRadius: "12px",
+                    padding: "8px 10px",
                     display: "flex",
                     flexDirection: "column",
+                    justifyContent: "flex-start",
                     gap: "4px",
                     cursor: "pointer",
                     transition: "all 0.15s ease",
@@ -408,62 +411,94 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                   <div
                     style={{
                       display: "flex",
-                      justifyContent: "space-between",
                       alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "4px",
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: "0.84rem",
-                        fontWeight: 700,
-                        color: isToday ? "#38bdf8" : hasEvents ? "#f1f5f9" : "#94a3b8",
-                      }}
-                    >
-                      {dayNum}
-                    </span>
+                    {isToday ? (
+                      <span
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "50%",
+                          background: "var(--brand)",
+                          color: "#ffffff",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.80rem",
+                          fontWeight: 800,
+                          boxShadow: "0 0 10px rgba(2, 132, 199, 0.5)",
+                        }}
+                      >
+                        {dayNum}
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: "0.82rem",
+                          fontWeight: 700,
+                          color: hasEvents ? "#ffffff" : "#94a3b8",
+                        }}
+                      >
+                        {dayNum}
+                      </span>
+                    )}
+
                     {hasEvents && (
                       <span
                         style={{
-                          fontSize: "0.68rem",
-                          background: "#0284c7",
-                          color: "#fff",
-                          borderRadius: "999px",
-                          padding: "1px 6px",
-                          fontWeight: 700,
+                          width: "7px",
+                          height: "7px",
+                          borderRadius: "50%",
+                          background: "#38bdf8",
+                          boxShadow: "0 0 6px #38bdf8",
                         }}
-                      >
-                        {dayEvents.length} {dayEvents.length === 1 ? "evento" : "eventos"}
-                      </span>
+                        title={`${dayEvents.length} evento(s)`}
+                      />
                     )}
                   </div>
 
-                  {/* Pills de Eventos */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "3px", overflowY: "auto", maxHeight: "65px" }}>
-                    {dayEvents.map((ev) => (
+                  {/* Pills de Eventos Limpas */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", overflow: "hidden" }}>
+                    {dayEvents.slice(0, 2).map((ev) => (
                       <div
                         key={ev.id}
                         style={{
-                          fontSize: "0.72rem",
+                          fontSize: "0.74rem",
                           padding: "3px 6px",
-                          borderRadius: "5px",
+                          borderRadius: "6px",
                           background:
                             ev.visibility === "PUBLIC"
-                              ? "rgba(14, 165, 233, 0.18)"
-                              : "rgba(168, 85, 247, 0.18)",
+                              ? "rgba(56, 189, 248, 0.12)"
+                              : "rgba(168, 85, 247, 0.12)",
                           color: ev.visibility === "PUBLIC" ? "#38bdf8" : "#c084fc",
                           border:
                             ev.visibility === "PUBLIC"
-                              ? "1px solid rgba(14, 165, 233, 0.3)"
-                              : "1px solid rgba(168, 85, 247, 0.3)",
-                          whiteSpace: "nowrap",
+                              ? "1px solid rgba(56, 189, 248, 0.25)"
+                              : "1px solid rgba(168, 85, 247, 0.25)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                           lineHeight: 1.2,
                         }}
                       >
-                        <strong>{formatTime(ev.startsAt)}</strong> {ev.title}
+                        <strong style={{ flexShrink: 0 }}>{formatTime(ev.startsAt)}</strong>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {ev.title}
+                        </span>
                       </div>
                     ))}
+                    {dayEvents.length > 2 && (
+                      <span style={{ fontSize: "0.68rem", color: "#64748b",
+                  letterSpacing: "0.06em", fontWeight: 600, paddingLeft: "2px" }}>
+                        + {dayEvents.length - 2} outro(s)
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -489,7 +524,8 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
             <h3 style={{ margin: "0 0 6px", color: "#fff", fontSize: "1.1rem" }}>
               Nenhum evento agendado
             </h3>
-            <p style={{ margin: "0 0 16px", color: "#94a3b8", fontSize: "0.88rem" }}>
+            <p style={{ margin: "0 0 16px", color: "#64748b",
+                  letterSpacing: "0.06em", fontSize: "0.88rem" }}>
               Cadastre missas, encontros, reuniões de equipes ou eventos públicos.
             </p>
             <button
@@ -522,7 +558,8 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                           {ev.title}
                         </strong>
                         {ev.description && (
-                          <small style={{ color: "#94a3b8", fontSize: "0.78rem" }}>
+                          <small style={{ color: "#64748b",
+                  letterSpacing: "0.06em", fontSize: "0.78rem" }}>
                             {ev.description.slice(0, 65)}
                             {ev.description.length > 65 ? "..." : ""}
                           </small>
@@ -535,7 +572,8 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                           <CalendarIcon size={12} style={{ color: "#38bdf8" }} />
                           <strong>{formatDate(ev.startsAt)}</strong>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "5px", color: "#94a3b8", fontSize: "0.78rem", marginTop: "2px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "5px", color: "#64748b",
+                  letterSpacing: "0.06em", fontSize: "0.78rem", marginTop: "2px" }}>
                           <Clock size={12} />
                           <span>
                             {formatTime(ev.startsAt)}
@@ -703,7 +741,8 @@ export function CalendarManager({ initialEvents }: { initialEvents: EventItem[] 
                 </div>
 
                 {ev.description && (
-                  <p style={{ margin: 0, fontSize: "0.84rem", color: "#94a3b8", lineHeight: 1.4 }}>
+                  <p style={{ margin: 0, fontSize: "0.84rem", color: "#64748b",
+                  letterSpacing: "0.06em", lineHeight: 1.4 }}>
                     {ev.description}
                   </p>
                 )}
